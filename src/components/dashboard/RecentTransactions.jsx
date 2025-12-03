@@ -34,7 +34,7 @@ const categoryColors = {
   other: 'bg-slate-50'
 };
 
-export default function RecentTransactions({ transactions, currencySymbol = '$' }) {
+export default function RecentTransactions({ transactions, currencySymbol = '$', showAddedBy = false }) {
   const sortedTransactions = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10);
@@ -67,6 +67,7 @@ export default function RecentTransactions({ transactions, currencySymbol = '$' 
             <p className="text-xs text-slate-400">
               {t.merchant && `${t.merchant} • `}
               {moment(t.date).format('MMM D')}
+              {showAddedBy && t.added_by_name && ` • by ${t.added_by_name}`}
             </p>
           </div>
           <p className={cn(
