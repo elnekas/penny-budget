@@ -15,10 +15,6 @@ export default function QuickStats({ transactions, budgets, totalAllowance = 0, 
     .filter(t => t.amount < 0 && (t.expense_type || 'variable') === 'variable')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   
-  const fixedSpent = thisMonthTransactions
-    .filter(t => t.amount < 0 && t.expense_type === 'fixed')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
   const allocatedTotal = budgets
     .filter(b => b.month === currentMonth)
     .reduce((sum, b) => sum + b.monthly_limit, 0);
