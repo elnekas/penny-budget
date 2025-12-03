@@ -34,7 +34,7 @@ const categoryColors = {
   other: 'bg-slate-50'
 };
 
-export default function RecentTransactions({ transactions }) {
+export default function RecentTransactions({ transactions, currencySymbol = '$' }) {
   const sortedTransactions = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10);
@@ -73,7 +73,7 @@ export default function RecentTransactions({ transactions }) {
             "text-sm font-semibold",
             t.amount < 0 ? "text-slate-800" : "text-emerald-600"
           )}>
-            {t.amount < 0 ? '-' : '+'}${Math.abs(t.amount).toFixed(2)}
+            {t.amount < 0 ? '-' : '+'}{currencySymbol}{Math.abs(t.amount).toFixed(2)}
           </p>
         </div>
       ))}

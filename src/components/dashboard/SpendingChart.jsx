@@ -34,7 +34,7 @@ const categoryIcons = {
   other: '📦'
 };
 
-export default function SpendingChart({ transactions }) {
+export default function SpendingChart({ transactions, currencySymbol = '$' }) {
   const categoryData = transactions
     .filter(t => t.amount < 0)
     .reduce((acc, t) => {
@@ -77,7 +77,7 @@ export default function SpendingChart({ transactions }) {
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value) => [`$${value.toFixed(2)}`, '']}
+              formatter={(value) => [`${currencySymbol}${value.toFixed(2)}`, '']}
               contentStyle={{ 
                 borderRadius: '12px', 
                 border: 'none', 
@@ -100,7 +100,7 @@ export default function SpendingChart({ transactions }) {
             <div className="flex-1">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium text-slate-700 capitalize">{cat.name}</span>
-                <span className="text-sm font-semibold text-slate-800">${cat.value.toFixed(0)}</span>
+                <span className="text-sm font-semibold text-slate-800">{currencySymbol}{cat.value.toFixed(0)}</span>
               </div>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div 

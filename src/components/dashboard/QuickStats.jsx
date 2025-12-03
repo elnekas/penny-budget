@@ -3,7 +3,7 @@ import { TrendingDown, TrendingUp, Wallet, Target } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
 
-export default function QuickStats({ transactions, budgets }) {
+export default function QuickStats({ transactions, budgets, currencySymbol = '$' }) {
   const currentMonth = moment().format('YYYY-MM');
   
   const thisMonthTransactions = transactions.filter(t => 
@@ -28,21 +28,21 @@ export default function QuickStats({ transactions, budgets }) {
   const stats = [
     {
       label: 'Spent This Month',
-      value: `$${totalSpent.toFixed(0)}`,
+      value: `${currencySymbol}${totalSpent.toFixed(0)}`,
       icon: TrendingDown,
       color: 'from-rose-500 to-pink-500',
       bgColor: 'bg-rose-50'
     },
     {
       label: 'Income',
-      value: `$${totalIncome.toFixed(0)}`,
+      value: `${currencySymbol}${totalIncome.toFixed(0)}`,
       icon: TrendingUp,
       color: 'from-emerald-500 to-teal-500',
       bgColor: 'bg-emerald-50'
     },
     {
       label: 'Budget Left',
-      value: totalBudget > 0 ? `$${budgetRemaining.toFixed(0)}` : 'Not set',
+      value: totalBudget > 0 ? `${currencySymbol}${budgetRemaining.toFixed(0)}` : 'Not set',
       icon: Wallet,
       color: 'from-blue-500 to-indigo-500',
       bgColor: 'bg-blue-50',
