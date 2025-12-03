@@ -8,23 +8,34 @@ async function buildUserParts(message, fileUrls) {
   for (const url of fileUrls) {
     try {
       const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const contentType = response.headers.get('content-type') || '';
       
-      // Determine mime type from URL or content-type header
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      let mimeType = contentType.split(';')[0];
-      
-      if (url.toLowerCase().includes('.pdf')) mimeType = 'application/pdf';
-      else if (url.toLowerCase().includes('.png')) mimeType = 'image/png';
-      else if (url.toLowerCase().includes('.csv')) mimeType = 'text/csv';
-      
-      parts.push({
-        inlineData: {
-          mimeType,
-          data: base64
+      // For CSV files, read as text and include in the message
+      if (url.toLowerCase().includes('.csv') || contentType.includes('csv') || contentType.includes('text')) {
+        const textContent = await response.text();
+        parts[0].text += `\n\nCSV FILE CONTENT:\n${textContent}`;
+      } else {
+        // For images and PDFs, use inline data
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
         }
-      });
+        const base64 = btoa(binary);
+        
+        let mimeType = contentType.split(';')[0];
+        if (url.toLowerCase().includes('.pdf')) mimeType = 'application/pdf';
+        else if (url.toLowerCase().includes('.png')) mimeType = 'image/png';
+        else if (url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg')) mimeType = 'image/jpeg';
+        
+        parts.push({
+          inlineData: {
+            mimeType,
+            data: base64
+          }
+        });
+      }
     } catch (e) {
       console.error('Failed to fetch file:', url, e);
     }

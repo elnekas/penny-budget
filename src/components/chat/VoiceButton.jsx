@@ -3,82 +3,44 @@ import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function VoiceButton({ onTranscript, disabled }) {
+export default function VoiceButton({ onResult, disabled }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+  const recognitionRef = useRef(null);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        chunksRef.current.push(e.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        setIsProcessing(true);
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        
-        // Use Web Speech API for transcription
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        
-        recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          onTranscript(transcript);
-          setIsProcessing(false);
-        };
-        
-        recognition.onerror = () => {
-          setIsProcessing(false);
-        };
-        
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      
-      // Also start speech recognition
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onTranscript(transcript);
-        setIsProcessing(false);
-        setIsRecording(false);
-        if (mediaRecorderRef.current?.state === 'recording') {
-          mediaRecorderRef.current.stop();
-        }
-      };
-      
-      recognition.onerror = () => {
-        setIsProcessing(false);
-        setIsRecording(false);
-      };
-      
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-      
-      recognition.start();
-      
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      setIsRecording(false);
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser');
+      return;
     }
+
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.interimResults = false;
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      onResult(transcript);
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.start();
+    setIsRecording(true);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
     }
     setIsRecording(false);
   };
