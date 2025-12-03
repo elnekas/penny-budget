@@ -32,7 +32,37 @@ export default function Home() {
   const [conversationId, setConversationId] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState(null);
   const [currency, setCurrency] = useState('USD');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+        if (!currentUser.onboarding_completed) {
+          setShowOnboarding(true);
+        } else if (currentUser.preferred_currency) {
+          setCurrency(currentUser.preferred_currency);
+        }
+      } catch (e) {
+        // Not logged in
+      }
+      setLoading(false);
+    };
+    checkOnboarding();
+  }, []);
+
+  const handleOnboardingComplete = async () => {
+    const updatedUser = await base44.auth.me();
+    setUser(updatedUser);
+    if (updatedUser.preferred_currency) {
+      setCurrency(updatedUser.preferred_currency);
+    }
+    setShowOnboarding(false);
+  };
   
   const currencySymbol = currencies.find(c => c.code === currency)?.symbol || '$';
 
@@ -54,6 +84,20 @@ export default function Home() {
     setExtractedTransactions(null);
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-200 animate-pulse">
+          <span className="text-3xl">💰</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (showOnboarding) {
+    return <OnboardingFlow user={user} onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
