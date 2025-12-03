@@ -34,7 +34,7 @@ const categoryIcons = {
   other: '📦'
 };
 
-export default function SpendingChart({ transactions, currencySymbol = '$' }) {
+export default function SpendingChart({ transactions, budgets = [], currencySymbol = '$' }) {
   const categoryData = transactions
     .filter(t => t.amount < 0)
     .reduce((acc, t) => {
@@ -89,28 +89,51 @@ export default function SpendingChart({ transactions, currencySymbol = '$' }) {
       </div>
       
       <div className="space-y-2">
-        {data.slice(0, 5).map((cat, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div 
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-              style={{ backgroundColor: `${cat.color}20` }}
-            >
-              {categoryIcons[cat.name] || '📦'}
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium text-slate-700 capitalize">{cat.name}</span>
-                <span className="text-sm font-semibold text-slate-800">{currencySymbol}{cat.value.toFixed(0)}</span>
+        {data.slice(0, 5).map((cat, idx) => {
+          const categoryBudget = budgets.find(b => b.category === cat.name);
+          const budgetLimit = categoryBudget?.monthly_limit || 0;
+          const budgetPercent = budgetLimit > 0 ? Math.min((cat.value / budgetLimit) * 100, 100) : 0;
+          const isOverBudget = budgetLimit > 0 && cat.value > budgetLimit;
+          
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                style={{ backgroundColor: `${cat.color}20` }}
+              >
+                {categoryIcons[cat.name] || '📦'}
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${(cat.value / total) * 100}%`, backgroundColor: cat.color }}
-                />
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-slate-700 capitalize">{cat.name}</span>
+                  <span className="text-sm font-semibold text-slate-800">{currencySymbol}{cat.value.toFixed(0)}</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${(cat.value / total) * 100}%`, backgroundColor: cat.color }}
+                  />
+                </div>
               </div>
+              {budgetLimit > 0 ? (
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold border-2",
+                  isOverBudget 
+                    ? "border-red-400 text-red-600 bg-red-50" 
+                    : budgetPercent >= 80 
+                      ? "border-amber-400 text-amber-600 bg-amber-50"
+                      : "border-emerald-400 text-emerald-600 bg-emerald-50"
+                )}>
+                  {Math.round(budgetPercent)}%
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-xs text-slate-400 border-2 border-dashed border-slate-200">
+                  --
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
