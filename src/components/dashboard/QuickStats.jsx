@@ -3,7 +3,7 @@ import { TrendingDown, Wallet } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
 
-export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget }) {
+export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget, onEditCategoryBudgets }) {
   const currentMonth = moment().format('YYYY-MM');
   const [alertShown, setAlertShown] = React.useState({ variable: false, fixed: false });
   
@@ -34,13 +34,17 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
     }
   }, [variableSpent, totalBudget, alertShown.variable, currencySymbol]);
 
+  const categoryBudgetCount = budgets.filter(b => b.month === currentMonth).length;
+
   const stats = [
     {
       label: 'Variable Spent',
       value: `${currencySymbol}${variableSpent.toFixed(0)}`,
       icon: TrendingDown,
       color: 'from-rose-500 to-pink-500',
-      bgColor: 'bg-rose-50'
+      bgColor: 'bg-rose-50',
+      subtext: `${categoryBudgetCount} category budgets`,
+      onClick: onEditCategoryBudgets
     },
     {
       label: 'Variable Budget Left',

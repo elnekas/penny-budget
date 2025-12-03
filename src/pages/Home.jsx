@@ -13,6 +13,8 @@ import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import TransactionEditModal from '@/components/dashboard/TransactionEditModal';
 import TransactionFilters from '@/components/dashboard/TransactionFilters';
 import BudgetEditModal from '@/components/dashboard/BudgetEditModal';
+import BudgetAlerts from '@/components/dashboard/BudgetAlerts';
+import CategoryBudgetManager from '@/components/dashboard/CategoryBudgetManager';
 
 
 import CurrencySelector from '@/components/CurrencySelector';
@@ -40,6 +42,7 @@ export default function Home() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterExpenseType, setFilterExpenseType] = useState('variable');
   const [showBudgetEdit, setShowBudgetEdit] = useState(false);
+const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
   
   
   const [currency, setCurrency] = useState('USD');
@@ -229,11 +232,12 @@ export default function Home() {
         {activeTab === 'dashboard' && (
           <div className="p-4 space-y-6">
             <QuickStats 
-                    transactions={transactions} 
-                    budgets={budgets} 
-                    currencySymbol={currencySymbol} 
-                    onEditBudget={() => setShowBudgetEdit(true)}
-                  />
+                                      transactions={transactions} 
+                                      budgets={budgets} 
+                                      currencySymbol={currencySymbol} 
+                                      onEditBudget={() => setShowBudgetEdit(true)}
+                                      onEditCategoryBudgets={() => setShowCategoryBudgets(true)}
+                                    />
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 border-0 shadow-sm">
@@ -297,9 +301,22 @@ export default function Home() {
 
 
 
-        {/* Budget Edit Modal */}
-                  {showBudgetEdit && (
-                    <BudgetEditModal
+        {/* Category Budgets Modal */}
+                                {showCategoryBudgets && (
+                                  <CategoryBudgetManager
+                                    budgets={budgets}
+                                    accountOwner={accountOwner}
+                                    onClose={() => setShowCategoryBudgets(false)}
+                                    onSave={() => {
+                                      setShowCategoryBudgets(false);
+                                      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+                                    }}
+                                  />
+                                )}
+
+                                {/* Budget Edit Modal */}
+                                {showBudgetEdit && (
+                                  <BudgetEditModal
                       currentBudget={budgets.filter(b => b.month === moment().format('YYYY-MM')).reduce((sum, b) => sum + b.monthly_limit, 0)}
                       month={moment().format('YYYY-MM')}
                       accountOwner={accountOwner}
