@@ -3,7 +3,7 @@ import { TrendingDown, Wallet } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
 
-export default function QuickStats({ transactions, budgets, currencySymbol = '$' }) {
+export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget }) {
   const currentMonth = moment().format('YYYY-MM');
   
   const thisMonthTransactions = transactions.filter(t => 
@@ -35,7 +35,8 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
       icon: Wallet,
       color: 'from-blue-500 to-indigo-500',
       bgColor: 'bg-blue-50',
-      subtext: totalBudget > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : null
+      subtext: totalBudget > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Click to set',
+      onClick: onEditBudget
     }
   ];
 
@@ -44,7 +45,11 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
       {stats.map((stat, idx) => (
         <div 
           key={idx}
-          className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+          onClick={stat.onClick}
+          className={cn(
+            "bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow",
+            stat.onClick && "cursor-pointer"
+          )}
         >
           <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-3", stat.bgColor)}>
             <stat.icon className={cn("w-5 h-5 bg-gradient-to-r bg-clip-text", stat.color.replace('from-', 'text-').split(' ')[0])} />
