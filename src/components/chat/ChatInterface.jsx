@@ -1,157 +1,165 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import MessageBubble from './MessageBubble';
-import VoiceButton from './VoiceButton';
+import { Send, Loader2, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import VoiceButton from './VoiceButton';
 
 const quickPrompts = [
-  "How much did I spend this month?",
-  "Show my spending by category",
-  "What's my biggest expense?",
-  "Am I on track with my budget?"
+  "I spent $25 on lunch today",
+  "Set my food budget to $500",
+  "How much did I spend this week?",
+  "Import: Coffee $5, Uber $12, Groceries $45"
 ];
 
-export default function ChatInterface({ conversationId, onConversationCreated }) {
+export default function ChatInterface() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversation, setConversation] = useState(null);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (conversationId) {
-      loadConversation();
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
-    if (conversationId) {
-      const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-        setMessages(data.messages || []);
-      });
-      return () => unsubscribe();
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  const loadConversation = async () => {
-    const conv = await base44.agents.getConversation(conversationId);
-    setConversation(conv);
-    setMessages(conv.messages || []);
-  };
-
-  const createNewConversation = async () => {
-    const conv = await base44.agents.createConversation({
-      agent_name: 'budget_assistant',
-      metadata: { name: `Chat ${new Date().toLocaleDateString()}` }
-    });
-    setConversation(conv);
-    onConversationCreated?.(conv.id);
-    return conv;
-  };
-
   const sendMessage = async (text) => {
-    if (!text.trim() || isLoading) return;
-    
-    setIsLoading(true);
+    if (!text.trim() || loading) return;
+
+    const userMessage = { role: 'user', content: text };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
-    
-    let currentConv = conversation;
-    if (!currentConv) {
-      currentConv = await createNewConversation();
+    setLoading(true);
+
+    try {
+      const response = await base44.functions.invoke('chat', {
+        message: text,
+        conversationHistory: messages.slice(-10)
+      });
+
+      const assistantMessage = { 
+        role: 'assistant', 
+        content: response.data.message,
+        actions: response.data.actions 
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Refresh data if actions were performed
+      if (response.data.actions?.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      }
+    } catch (e) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "Sorry, I had trouble processing that. Please try again! 😅" 
+      }]);
     }
 
-    await base44.agents.addMessage(currentConv, {
-      role: 'user',
-      content: text
-    });
-    
-    setIsLoading(false);
+    setLoading(false);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    sendMessage(input);
-  };
-
-  const handleVoiceTranscript = (transcript) => {
-    sendMessage(transcript);
+  const handleVoiceResult = (transcript) => {
+    if (transcript) {
+      sendMessage(transcript);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-50 to-white">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && (
+    <div className="flex flex-col h-full">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-6 shadow-xl shadow-emerald-200">
-              <span className="text-4xl">💰</span>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-4 shadow-lg">
+              <span className="text-3xl">💰</span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Hey there! I'm Penny</h2>
-            <p className="text-slate-500 mb-8 max-w-md">
-              Your friendly budget buddy. Tell me what you spent, ask about your finances, or upload a statement!
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Hey! I'm Penny</h2>
+            <p className="text-slate-500 mb-6 max-w-sm">
+              Your personal budget buddy. Tell me about your spending, set budgets, or import transactions!
             </p>
-            <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+            <div className="flex flex-wrap gap-2 justify-center max-w-md">
               {quickPrompts.map((prompt, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(prompt)}
-                  className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm"
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
                 >
-                  <Sparkles className="inline h-3 w-3 mr-1.5 text-emerald-500" />
                   {prompt}
                 </button>
               ))}
             </div>
           </div>
-        )}
-        
-        {messages.map((msg, idx) => (
-          <MessageBubble key={idx} message={msg} />
-        ))}
-        
-        {isLoading && (
-          <div className="flex gap-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <Loader2 className="h-4 w-4 text-white animate-spin" />
-            </div>
-            <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3 shadow-sm">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        ) : (
+          <>
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  "flex",
+                  msg.role === 'user' ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-2xl px-4 py-3",
+                    msg.role === 'user'
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white border border-slate-100 text-slate-800"
+                  )}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.actions?.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-emerald-500/20">
+                      {msg.actions.map((action, i) => (
+                        <div key={i} className="flex items-center gap-1 text-xs opacity-80">
+                          <Sparkles className="w-3 h-3" />
+                          {action.success ? '✓' : '✗'} {action.type.replace('_', ' ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-slate-100 bg-white p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2 items-center max-w-3xl mx-auto">
-          <VoiceButton onTranscript={handleVoiceTranscript} disabled={isLoading} />
+      {/* Input */}
+      <div className="p-4 border-t border-slate-100 bg-white">
+        <div className="flex gap-2">
+          <VoiceButton onResult={handleVoiceResult} />
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Tell me about an expense or ask a question..."
-            className="flex-1 h-12 rounded-full border-slate-200 focus:border-emerald-300 focus:ring-emerald-200 px-5"
-            disabled={isLoading}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
+            placeholder="Tell Penny about your spending..."
+            disabled={loading}
+            className="flex-1"
           />
-          <Button 
-            type="submit" 
-            disabled={!input.trim() || isLoading}
-            className="h-12 w-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-200"
+          <Button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !input.trim()}
+            className="bg-emerald-600 hover:bg-emerald-700"
           >
-            <Send className="h-5 w-5" />
+            <Send className="w-4 h-4" />
           </Button>
-        </form>
+        </div>
       </div>
     </div>
   );

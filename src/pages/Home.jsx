@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings, Users, CloudUpload, Loader2 } from 'lucide-react';
+import { MessageCircle, BarChart3, Sparkles, ChevronRight, Users, CloudUpload, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,9 +10,8 @@ import SpendingChart from '@/components/dashboard/SpendingChart';
 import SpendingTrend from '@/components/dashboard/SpendingTrend';
 import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
-import FileUploader from '@/components/upload/FileUploader';
-import GoogleDriveImport from '@/components/upload/GoogleDriveImport';
-import TransactionReview from '@/components/upload/TransactionReview';
+
+
 import CurrencySelector from '@/components/CurrencySelector';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import SharedAccountManager from '@/components/sharing/SharedAccountManager';
@@ -34,8 +33,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
   const [showSharing, setShowSharing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
-  const [extractedTransactions, setExtractedTransactions] = useState(null);
+  
+  
   const [currency, setCurrency] = useState('USD');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [user, setUser] = useState(null);
@@ -106,14 +105,7 @@ export default function Home() {
     enabled: !!accountOwner
   });
 
-  const handleTransactionsExtracted = (transactions) => {
-    setExtractedTransactions(transactions);
-  };
-
-  const handleImportComplete = () => {
-    setExtractedTransactions(null);
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-  };
+  
 
   if (loading) {
     return (
@@ -150,17 +142,13 @@ export default function Home() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-slate-100/80">
                   <TabsTrigger value="chat" className="gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    Chat
-                  </TabsTrigger>
-                  <TabsTrigger value="dashboard" className="gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    Dashboard
-                  </TabsTrigger>
-                  <TabsTrigger value="import" className="gap-2">
-                    <Upload className="w-4 h-4" />
-                    Import
-                  </TabsTrigger>
+                                            <MessageCircle className="w-4 h-4" />
+                                            Chat
+                                          </TabsTrigger>
+                                          <TabsTrigger value="dashboard" className="gap-2">
+                                            <BarChart3 className="w-4 h-4" />
+                                            Dashboard
+                                          </TabsTrigger>
                 </TabsList>
               </Tabs>
               <CurrencySelector value={currency} onChange={setCurrency} compact />
@@ -198,10 +186,9 @@ export default function Home() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 py-2 safe-area-inset-bottom">
         <div className="flex justify-around">
           {[
-            { id: 'chat', icon: MessageCircle, label: 'Chat' },
-            { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
-            { id: 'import', icon: Upload, label: 'Import' }
-          ].map(tab => (
+                            { id: 'chat', icon: MessageCircle, label: 'Chat' },
+                            { id: 'dashboard', icon: BarChart3, label: 'Dashboard' }
+                          ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -227,10 +214,7 @@ export default function Home() {
         {/* Chat Tab */}
         {activeTab === 'chat' && (
           <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)]">
-            <ChatInterface 
-              conversationId={conversationId}
-              onConversationCreated={setConversationId}
-            />
+            <ChatInterface />
           </div>
         )}
 
@@ -275,45 +259,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Import Tab */}
-        {activeTab === 'import' && (
-          <div className="p-4 max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Import Transactions</h2>
-              <p className="text-slate-500">
-                Upload a bank statement, spreadsheet, or receipt image
-              </p>
-            </div>
 
-            {extractedTransactions ? (
-                            <Card className="p-6 border-0 shadow-sm">
-                              <TransactionReview 
-                                transactions={extractedTransactions}
-                                onComplete={handleImportComplete}
-                                onCancel={() => setExtractedTransactions(null)}
-                              />
-                            </Card>
-                          ) : (
-                            <div className="space-y-6">
-                              <FileUploader onTransactionsExtracted={handleTransactionsExtracted} />
-                              <div className="text-center text-slate-400 text-sm">or</div>
-                              <GoogleDriveImport onTransactionsExtracted={handleTransactionsExtracted} />
-                            </div>
-                          )}
-
-            <div className="mt-8 text-center">
-              <p className="text-sm text-slate-400 mb-4">Or tell Penny directly</p>
-              <Button 
-                variant="outline"
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                onClick={() => setActiveTab('chat')}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                "I spent $45 on groceries today"
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Sharing Modal */}
         {showSharing && (
