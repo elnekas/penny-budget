@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingDown, TrendingUp, Wallet, Target } from 'lucide-react';
+import { TrendingDown, Wallet } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
 
@@ -10,39 +10,28 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
     t.date?.startsWith(currentMonth)
   );
   
-  const totalSpent = thisMonthTransactions
-    .filter(t => t.amount < 0)
+  const variableSpent = thisMonthTransactions
+    .filter(t => t.amount < 0 && (t.expense_type || 'variable') === 'variable')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
-  const totalIncome = thisMonthTransactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
   
   const totalBudget = budgets
     .filter(b => b.month === currentMonth)
     .reduce((sum, b) => sum + b.monthly_limit, 0);
   
-  const budgetRemaining = totalBudget - totalSpent;
-  const budgetPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  const variableBudgetRemaining = totalBudget - variableSpent;
+  const budgetPercent = totalBudget > 0 ? (variableSpent / totalBudget) * 100 : 0;
 
   const stats = [
     {
-      label: 'Spent This Month',
-      value: `${currencySymbol}${totalSpent.toFixed(0)}`,
+      label: 'Variable Spent',
+      value: `${currencySymbol}${variableSpent.toFixed(0)}`,
       icon: TrendingDown,
       color: 'from-rose-500 to-pink-500',
       bgColor: 'bg-rose-50'
     },
     {
-      label: 'Income',
-      value: `${currencySymbol}${totalIncome.toFixed(0)}`,
-      icon: TrendingUp,
-      color: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-50'
-    },
-    {
-      label: 'Budget Left',
-      value: totalBudget > 0 ? `${currencySymbol}${budgetRemaining.toFixed(0)}` : 'Not set',
+      label: 'Variable Budget Left',
+      value: totalBudget > 0 ? `${currencySymbol}${variableBudgetRemaining.toFixed(0)}` : 'Not set',
       icon: Wallet,
       color: 'from-blue-500 to-indigo-500',
       bgColor: 'bg-blue-50',
@@ -51,7 +40,7 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3">
       {stats.map((stat, idx) => (
         <div 
           key={idx}
