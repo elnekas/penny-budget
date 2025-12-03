@@ -58,9 +58,7 @@ export default function VoiceButton({ onResult, disabled }) {
         !isRecording && "hover:bg-slate-100"
       )}
     >
-      {isProcessing ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
-      ) : isRecording ? (
+      {isRecording ? (
         <MicOff className="h-5 w-5" />
       ) : (
         <Mic className="h-5 w-5" />
