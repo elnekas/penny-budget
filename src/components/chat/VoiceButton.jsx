@@ -50,7 +50,7 @@ export default function VoiceButton({ onResult, disabled }) {
       type="button"
       size="icon"
       variant="ghost"
-      disabled={disabled || isProcessing}
+      disabled={disabled}
       onClick={isRecording ? stopRecording : startRecording}
       className={cn(
         "h-10 w-10 rounded-full transition-all duration-300",
