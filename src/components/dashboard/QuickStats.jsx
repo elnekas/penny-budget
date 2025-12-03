@@ -19,20 +19,20 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
     .filter(t => t.amount < 0 && t.expense_type === 'fixed')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   
-  const totalBudget = budgets
+  const categoryBudgetsTotal = budgets
     .filter(b => b.month === currentMonth)
     .reduce((sum, b) => sum + b.monthly_limit, 0);
   
-  const variableBudgetRemaining = totalBudget - variableSpent;
-  const budgetPercent = totalBudget > 0 ? (variableSpent / totalBudget) * 100 : 0;
+  const variableBudgetRemaining = categoryBudgetsTotal - variableSpent;
+  const budgetPercent = categoryBudgetsTotal > 0 ? (variableSpent / categoryBudgetsTotal) * 100 : 0;
 
   // Alert when budget is exceeded
   React.useEffect(() => {
-    if (totalBudget > 0 && variableSpent > totalBudget && !alertShown.variable) {
-      alert(`⚠️ You've exceeded your variable budget! Spent ${currencySymbol}${variableSpent.toFixed(0)} of ${currencySymbol}${totalBudget.toFixed(0)}`);
+    if (categoryBudgetsTotal > 0 && variableSpent > categoryBudgetsTotal && !alertShown.variable) {
+      alert(`⚠️ You've exceeded your variable budget! Spent ${currencySymbol}${variableSpent.toFixed(0)} of ${currencySymbol}${categoryBudgetsTotal.toFixed(0)}`);
       setAlertShown(prev => ({ ...prev, variable: true }));
     }
-  }, [variableSpent, totalBudget, alertShown.variable, currencySymbol]);
+  }, [variableSpent, categoryBudgetsTotal, alertShown.variable, currencySymbol]);
 
   const categoryBudgetCount = budgets.filter(b => b.month === currentMonth).length;
 
@@ -43,17 +43,17 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
       icon: TrendingDown,
       color: 'from-rose-500 to-pink-500',
       bgColor: 'bg-rose-50',
-      subtext: `${categoryBudgetCount} category budgets`,
+      subtext: `of ${currencySymbol}${categoryBudgetsTotal.toFixed(0)} allocated`,
       onClick: onEditCategoryBudgets
     },
     {
-      label: 'Variable Budget Left',
-      value: totalBudget > 0 ? `${currencySymbol}${variableBudgetRemaining.toFixed(0)}` : 'Not set',
+      label: 'Monthly Allowance Left',
+      value: categoryBudgetsTotal > 0 ? `${currencySymbol}${variableBudgetRemaining.toFixed(0)}` : 'Not set',
       icon: Wallet,
       color: 'from-blue-500 to-indigo-500',
       bgColor: 'bg-blue-50',
-      subtext: totalBudget > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Click to set',
-      onClick: onEditBudget
+      subtext: categoryBudgetsTotal > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Set category budgets',
+      onClick: onEditCategoryBudgets
     }
   ];
 
