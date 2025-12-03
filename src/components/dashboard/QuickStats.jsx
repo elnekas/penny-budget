@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget }) {
   const currentMonth = moment().format('YYYY-MM');
+  const [alertShown, setAlertShown] = React.useState({ variable: false, fixed: false });
   
   const thisMonthTransactions = transactions.filter(t => 
     t.date?.startsWith(currentMonth)
@@ -14,12 +15,24 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
     .filter(t => t.amount < 0 && (t.expense_type || 'variable') === 'variable')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   
+  const fixedSpent = thisMonthTransactions
+    .filter(t => t.amount < 0 && t.expense_type === 'fixed')
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  
   const totalBudget = budgets
     .filter(b => b.month === currentMonth)
     .reduce((sum, b) => sum + b.monthly_limit, 0);
   
   const variableBudgetRemaining = totalBudget - variableSpent;
   const budgetPercent = totalBudget > 0 ? (variableSpent / totalBudget) * 100 : 0;
+
+  // Alert when budget is exceeded
+  React.useEffect(() => {
+    if (totalBudget > 0 && variableSpent > totalBudget && !alertShown.variable) {
+      alert(`⚠️ You've exceeded your variable budget! Spent ${currencySymbol}${variableSpent.toFixed(0)} of ${currencySymbol}${totalBudget.toFixed(0)}`);
+      setAlertShown(prev => ({ ...prev, variable: true }));
+    }
+  }, [variableSpent, totalBudget, alertShown.variable, currencySymbol]);
 
   const stats = [
     {
