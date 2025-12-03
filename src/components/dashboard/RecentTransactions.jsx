@@ -34,7 +34,7 @@ const categoryColors = {
   other: 'bg-slate-50'
 };
 
-export default function RecentTransactions({ transactions, currencySymbol = '$', showAddedBy = false }) {
+export default function RecentTransactions({ transactions, currencySymbol = '$', showAddedBy = false, onEdit }) {
   const sortedTransactions = [...transactions]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10);
@@ -54,7 +54,8 @@ export default function RecentTransactions({ transactions, currencySymbol = '$',
       {sortedTransactions.map((t, idx) => (
         <div 
           key={t.id || idx}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
+          onClick={() => onEdit?.(t)}
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
         >
           <div className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center text-lg",
