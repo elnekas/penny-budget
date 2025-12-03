@@ -12,7 +12,18 @@ import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import FileUploader from '@/components/upload/FileUploader';
 import TransactionReview from '@/components/upload/TransactionReview';
-import CurrencySelector, { currencies } from '@/components/CurrencySelector';
+import CurrencySelector from '@/components/CurrencySelector';
+
+const currencies = [
+  { code: 'USD', symbol: '$' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'GBP', symbol: '£' },
+  { code: 'JPY', symbol: '¥' },
+  { code: 'CAD', symbol: 'C$' },
+  { code: 'AUD', symbol: 'A$' },
+  { code: 'INR', symbol: '₹' },
+  { code: 'ILS', symbol: '₪' }
+];
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { cn } from "@/lib/utils";
 
