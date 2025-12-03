@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings } from 'lucide-react';
+import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import FileUploader from '@/components/upload/FileUploader';
 import TransactionReview from '@/components/upload/TransactionReview';
 import CurrencySelector from '@/components/CurrencySelector';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import SharedAccountManager from '@/components/sharing/SharedAccountManager';
 
 const currencies = [
   { code: 'USD', symbol: '$' },
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
+  const [showSharing, setShowSharing] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState(null);
   const [currency, setCurrency] = useState('USD');
@@ -67,14 +69,24 @@ export default function Home() {
   
   const currencySymbol = currencies.find(c => c.code === currency)?.symbol || '$';
 
+  // Determine the account owner (self or shared account owner)
+  const accountOwner = user?.shared_with_account || user?.email;
+  const isSharedAccount = !!user?.shared_with_account;
+
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 100)
+    queryKey: ['transactions', accountOwner],
+    queryFn: () => accountOwner 
+      ? base44.entities.Transaction.filter({ account_owner: accountOwner }, '-date', 100)
+      : [],
+    enabled: !!accountOwner
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets'],
-    queryFn: () => base44.entities.Budget.list()
+    queryKey: ['budgets', accountOwner],
+    queryFn: () => accountOwner 
+      ? base44.entities.Budget.filter({ account_owner: accountOwner })
+      : [],
+    enabled: !!accountOwner
   });
 
   const handleTransactionsExtracted = (transactions) => {
@@ -135,8 +147,23 @@ export default function Home() {
                 </TabsList>
               </Tabs>
               <CurrencySelector value={currency} onChange={setCurrency} compact />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSharing(true)}
+                className="text-slate-600"
+              >
+                <Users className="w-5 h-5" />
+              </Button>
             </div>
           </div>
+          {isSharedAccount && (
+            <div className="bg-emerald-50 border-t border-emerald-100 px-4 py-2">
+              <p className="text-sm text-emerald-700 text-center">
+                📎 Shared account with <strong>{accountOwner}</strong>
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
@@ -216,7 +243,7 @@ export default function Home() {
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
-              <RecentTransactions transactions={transactions} currencySymbol={currencySymbol} />
+              <RecentTransactions transactions={transactions} currencySymbol={currencySymbol} showAddedBy={isSharedAccount} />
             </Card>
           </div>
         )}
@@ -253,6 +280,23 @@ export default function Home() {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 "I spent $45 on groceries today"
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Sharing Modal */}
+        {showSharing && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800">Shared Account</h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowSharing(false)}>
+                  <ChevronRight className="w-5 h-5 rotate-90" />
+                </Button>
+              </div>
+              <div className="p-4">
+                <SharedAccountManager user={user} accountOwner={accountOwner} />
+              </div>
             </div>
           </div>
         )}
