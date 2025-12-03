@@ -11,6 +11,7 @@ import SpendingTrend from '@/components/dashboard/SpendingTrend';
 import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import FileUploader from '@/components/upload/FileUploader';
+import GoogleDriveImport from '@/components/upload/GoogleDriveImport';
 import TransactionReview from '@/components/upload/TransactionReview';
 import CurrencySelector from '@/components/CurrencySelector';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
@@ -285,16 +286,20 @@ export default function Home() {
             </div>
 
             {extractedTransactions ? (
-              <Card className="p-6 border-0 shadow-sm">
-                <TransactionReview 
-                  transactions={extractedTransactions}
-                  onComplete={handleImportComplete}
-                  onCancel={() => setExtractedTransactions(null)}
-                />
-              </Card>
-            ) : (
-              <FileUploader onTransactionsExtracted={handleTransactionsExtracted} />
-            )}
+                            <Card className="p-6 border-0 shadow-sm">
+                              <TransactionReview 
+                                transactions={extractedTransactions}
+                                onComplete={handleImportComplete}
+                                onCancel={() => setExtractedTransactions(null)}
+                              />
+                            </Card>
+                          ) : (
+                            <div className="space-y-6">
+                              <FileUploader onTransactionsExtracted={handleTransactionsExtracted} />
+                              <div className="text-center text-slate-400 text-sm">or</div>
+                              <GoogleDriveImport onTransactionsExtracted={handleTransactionsExtracted} />
+                            </div>
+                          )}
 
             <div className="mt-8 text-center">
               <p className="text-sm text-slate-400 mb-4">Or tell Penny directly</p>
