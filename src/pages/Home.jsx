@@ -231,6 +231,12 @@ const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="p-4 space-y-6">
+            <BudgetAlerts 
+              transactions={transactions} 
+              budgets={budgets} 
+              currencySymbol={currencySymbol} 
+            />
+            
             <QuickStats 
                                       transactions={transactions} 
                                       budgets={budgets} 
