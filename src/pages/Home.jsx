@@ -12,6 +12,7 @@ import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import TransactionEditModal from '@/components/dashboard/TransactionEditModal';
 import TransactionFilters from '@/components/dashboard/TransactionFilters';
+import BudgetEditModal from '@/components/dashboard/BudgetEditModal';
 
 
 import CurrencySelector from '@/components/CurrencySelector';
@@ -38,6 +39,7 @@ export default function Home() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterExpenseType, setFilterExpenseType] = useState('variable');
+  const [showBudgetEdit, setShowBudgetEdit] = useState(false);
   
   
   const [currency, setCurrency] = useState('USD');
@@ -226,7 +228,12 @@ export default function Home() {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="p-4 space-y-6">
-            <QuickStats transactions={transactions} budgets={budgets} currencySymbol={currencySymbol} />
+            <QuickStats 
+                    transactions={transactions} 
+                    budgets={budgets} 
+                    currencySymbol={currencySymbol} 
+                    onEditBudget={() => setShowBudgetEdit(true)}
+                  />
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 border-0 shadow-sm">
@@ -290,8 +297,22 @@ export default function Home() {
 
 
 
-        {/* Edit Transaction Modal */}
-                    {editingTransaction && (
+        {/* Budget Edit Modal */}
+                  {showBudgetEdit && (
+                    <BudgetEditModal
+                      currentBudget={budgets.filter(b => b.month === moment().format('YYYY-MM')).reduce((sum, b) => sum + b.monthly_limit, 0)}
+                      month={moment().format('YYYY-MM')}
+                      accountOwner={accountOwner}
+                      onClose={() => setShowBudgetEdit(false)}
+                      onSave={() => {
+                        setShowBudgetEdit(false);
+                        queryClient.invalidateQueries({ queryKey: ['budgets'] });
+                      }}
+                    />
+                  )}
+
+                  {/* Edit Transaction Modal */}
+                  {editingTransaction && (
                       <TransactionEditModal
                         transaction={editingTransaction}
                         onClose={() => setEditingTransaction(null)}
