@@ -66,10 +66,11 @@ export default function RecentTransactions({ transactions, currencySymbol = '$',
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-800 truncate">{t.description}</p>
             <p className="text-xs text-slate-400">
-              {t.merchant && `${t.merchant} • `}
-              {moment(t.date).format('MMM D')}
-              {showAddedBy && t.added_by_name && ` • by ${t.added_by_name}`}
-            </p>
+                                {t.expense_type === 'fixed' && '🔄 '}
+                                {t.merchant && `${t.merchant} • `}
+                                {moment(t.date).format('MMM D')}
+                                {showAddedBy && t.added_by_name && ` • by ${t.added_by_name}`}
+                              </p>
           </div>
           <p className={cn(
             "text-sm font-semibold",

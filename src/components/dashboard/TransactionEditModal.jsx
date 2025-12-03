@@ -17,6 +17,7 @@ export default function TransactionEditModal({ transaction, onClose, onSave, onD
     amount: Math.abs(transaction.amount),
     isExpense: transaction.amount < 0,
     category: transaction.category || 'other',
+    expense_type: transaction.expense_type || 'variable',
     merchant: transaction.merchant || '',
     date: transaction.date?.split('T')[0] || new Date().toISOString().split('T')[0]
   });
@@ -31,6 +32,7 @@ export default function TransactionEditModal({ transaction, onClose, onSave, onD
         description: form.description,
         amount,
         category: form.category,
+        expense_type: form.expense_type,
         merchant: form.merchant,
         date: form.date
       });
@@ -107,6 +109,19 @@ export default function TransactionEditModal({ transaction, onClose, onSave, onD
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm text-slate-500 mb-1 block">Expense Type</label>
+            <Select value={form.expense_type} onValueChange={(v) => setForm({ ...form, expense_type: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixed">🔄 Fixed (Recurring)</SelectItem>
+                <SelectItem value="variable">📊 Variable</SelectItem>
               </SelectContent>
             </Select>
           </div>

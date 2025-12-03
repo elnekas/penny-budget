@@ -11,6 +11,7 @@ import SpendingTrend from '@/components/dashboard/SpendingTrend';
 import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import TransactionEditModal from '@/components/dashboard/TransactionEditModal';
+import TransactionFilters from '@/components/dashboard/TransactionFilters';
 
 
 import CurrencySelector from '@/components/CurrencySelector';
@@ -35,6 +36,8 @@ export default function Home() {
   const [showSharing, setShowSharing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterExpenseType, setFilterExpenseType] = useState('all');
   
   
   const [currency, setCurrency] = useState('USD');
@@ -244,25 +247,37 @@ export default function Home() {
             </div>
 
             <Card className="p-6 border-0 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">Recent Transactions</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-emerald-600"
-                  onClick={() => setActiveTab('chat')}
-                >
-                  Add new
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-              <RecentTransactions 
-                      transactions={transactions} 
-                      currencySymbol={currencySymbol} 
-                      showAddedBy={isSharedAccount}
-                      onEdit={(t) => setEditingTransaction(t)}
-                    />
-            </Card>
+                                <div className="flex items-center justify-between mb-4">
+                                  <h3 className="font-semibold text-slate-800">Recent Transactions</h3>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-emerald-600"
+                                    onClick={() => setActiveTab('chat')}
+                                  >
+                                    Add new
+                                    <ChevronRight className="w-4 h-4 ml-1" />
+                                  </Button>
+                                </div>
+                                <div className="mb-4">
+                                  <TransactionFilters 
+                                    category={filterCategory}
+                                    expenseType={filterExpenseType}
+                                    onCategoryChange={setFilterCategory}
+                                    onExpenseTypeChange={setFilterExpenseType}
+                                  />
+                                </div>
+                                <RecentTransactions 
+                                  transactions={transactions.filter(t => {
+                                    const catMatch = filterCategory === 'all' || t.category === filterCategory;
+                                    const typeMatch = filterExpenseType === 'all' || (t.expense_type || 'variable') === filterExpenseType;
+                                    return catMatch && typeMatch;
+                                  })} 
+                                  currencySymbol={currencySymbol} 
+                                  showAddedBy={isSharedAccount}
+                                  onEdit={(t) => setEditingTransaction(t)}
+                                />
+                              </Card>
           </div>
         )}
 
