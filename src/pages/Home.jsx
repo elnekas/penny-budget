@@ -10,6 +10,7 @@ import SpendingChart from '@/components/dashboard/SpendingChart';
 import SpendingTrend from '@/components/dashboard/SpendingTrend';
 import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
+import TransactionEditModal from '@/components/dashboard/TransactionEditModal';
 
 
 import CurrencySelector from '@/components/CurrencySelector';
@@ -33,6 +34,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
   const [showSharing, setShowSharing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
   
   
   const [currency, setCurrency] = useState('USD');
@@ -254,15 +256,36 @@ export default function Home() {
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
-              <RecentTransactions transactions={transactions} currencySymbol={currencySymbol} showAddedBy={isSharedAccount} />
+              <RecentTransactions 
+                      transactions={transactions} 
+                      currencySymbol={currencySymbol} 
+                      showAddedBy={isSharedAccount}
+                      onEdit={(t) => setEditingTransaction(t)}
+                    />
             </Card>
           </div>
         )}
 
 
 
-        {/* Sharing Modal */}
-        {showSharing && (
+        {/* Edit Transaction Modal */}
+                    {editingTransaction && (
+                      <TransactionEditModal
+                        transaction={editingTransaction}
+                        onClose={() => setEditingTransaction(null)}
+                        onSave={() => {
+                          setEditingTransaction(null);
+                          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+                        }}
+                        onDelete={() => {
+                          setEditingTransaction(null);
+                          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+                        }}
+                      />
+                    )}
+
+                    {/* Sharing Modal */}
+                    {showSharing && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex items-center justify-between">
