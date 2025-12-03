@@ -12,9 +12,10 @@ import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import TransactionEditModal from '@/components/dashboard/TransactionEditModal';
 import TransactionFilters from '@/components/dashboard/TransactionFilters';
-import BudgetEditModal from '@/components/dashboard/BudgetEditModal';
+
 import BudgetAlerts from '@/components/dashboard/BudgetAlerts';
 import CategoryBudgetManager from '@/components/dashboard/CategoryBudgetManager';
+import AllowanceEditModal from '@/components/dashboard/AllowanceEditModal';
 
 
 import CurrencySelector from '@/components/CurrencySelector';
@@ -42,8 +43,8 @@ export default function Home() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterExpenseType, setFilterExpenseType] = useState('variable');
-  const [showBudgetEdit, setShowBudgetEdit] = useState(false);
-const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
+  const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
+  const [showAllowanceEdit, setShowAllowanceEdit] = useState(false);
   
   
   const [currency, setCurrency] = useState('USD');
@@ -313,31 +314,37 @@ const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
 
 
         {/* Category Budgets Modal */}
-                                {showCategoryBudgets && (
-                                  <CategoryBudgetManager
-                                    budgets={budgets}
-                                    accountOwner={accountOwner}
-                                    onClose={() => setShowCategoryBudgets(false)}
-                                    onSave={() => {
-                                      setShowCategoryBudgets(false);
-                                      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-                                    }}
-                                  />
-                                )}
+                                              {showCategoryBudgets && (
+                                                <CategoryBudgetManager
+                                                  budgets={budgets}
+                                                  totalAllowance={user?.monthly_allowance || 0}
+                                                  accountOwner={accountOwner}
+                                                  onClose={() => setShowCategoryBudgets(false)}
+                                                  onSave={async () => {
+                                                    setShowCategoryBudgets(false);
+                                                    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+                                                    const updatedUser = await base44.auth.me();
+                                                    setUser(updatedUser);
+                                                  }}
+                                                  onEditAllowance={() => {
+                                                    setShowCategoryBudgets(false);
+                                                    setShowAllowanceEdit(true);
+                                                  }}
+                                                />
+                                              )}
 
-                                {/* Budget Edit Modal */}
-                                {showBudgetEdit && (
-                                  <BudgetEditModal
-                      currentBudget={budgets.filter(b => b.month === moment().format('YYYY-MM')).reduce((sum, b) => sum + b.monthly_limit, 0)}
-                      month={moment().format('YYYY-MM')}
-                      accountOwner={accountOwner}
-                      onClose={() => setShowBudgetEdit(false)}
-                      onSave={() => {
-                        setShowBudgetEdit(false);
-                        queryClient.invalidateQueries({ queryKey: ['budgets'] });
-                      }}
-                    />
-                  )}
+                                              {/* Allowance Edit Modal */}
+                                              {showAllowanceEdit && (
+                                                <AllowanceEditModal
+                                                  currentAllowance={user?.monthly_allowance || 0}
+                                                  onClose={() => setShowAllowanceEdit(false)}
+                                                  onSave={async () => {
+                                                    setShowAllowanceEdit(false);
+                                                    const updatedUser = await base44.auth.me();
+                                                    setUser(updatedUser);
+                                                  }}
+                                                />
+                                              )}
 
                   {/* Edit Transaction Modal */}
                   {editingTransaction && (
