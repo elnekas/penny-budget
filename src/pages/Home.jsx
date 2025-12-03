@@ -240,12 +240,12 @@ export default function Home() {
             />
             
             <QuickStats 
-                                      transactions={transactions} 
-                                      budgets={budgets} 
-                                      currencySymbol={currencySymbol} 
-                                      onEditBudget={() => setShowBudgetEdit(true)}
-                                      onEditCategoryBudgets={() => setShowCategoryBudgets(true)}
-                                    />
+                                                        transactions={transactions} 
+                                                        budgets={budgets} 
+                                                        totalAllowance={user?.monthly_allowance || 0}
+                                                        currencySymbol={currencySymbol} 
+                                                        onEditCategoryBudgets={() => setShowCategoryBudgets(true)}
+                                                      />
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 border-0 shadow-sm">
