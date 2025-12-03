@@ -13,6 +13,7 @@ import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import FileUploader from '@/components/upload/FileUploader';
 import TransactionReview from '@/components/upload/TransactionReview';
 import CurrencySelector from '@/components/CurrencySelector';
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 
 const currencies = [
   { code: 'USD', symbol: '$' },
