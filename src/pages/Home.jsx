@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings, Users } from 'lucide-react';
+import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings, Users, CloudUpload, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
   const [showSharing, setShowSharing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState(null);
   const [currency, setCurrency] = useState('USD');
@@ -65,6 +66,21 @@ export default function Home() {
       setCurrency(updatedUser.preferred_currency);
     }
     setShowOnboarding(false);
+  };
+
+  const handleExportToDrive = async () => {
+    setExporting(true);
+    try {
+      const response = await base44.functions.invoke('exportToGoogleDrive');
+      if (response.data.success) {
+        alert(`Exported ${response.data.transactionCount} transactions and ${response.data.budgetCount} budgets to Google Drive!`);
+      } else {
+        alert('Export failed: ' + (response.data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Export failed: ' + e.message);
+    }
+    setExporting(false);
   };
   
   const currencySymbol = currencies.find(c => c.code === currency)?.symbol || '$';
@@ -147,6 +163,16 @@ export default function Home() {
                 </TabsList>
               </Tabs>
               <CurrencySelector value={currency} onChange={setCurrency} compact />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleExportToDrive}
+                disabled={exporting}
+                className="text-slate-600"
+                title="Export to Google Drive"
+              >
+                {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudUpload className="w-5 h-5" />}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
