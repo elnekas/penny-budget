@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function WhatsAppButton({ className }) {
-  const [whatsappUrl, setWhatsappUrl] = useState(null);
-
-  useEffect(() => {
-    const url = base44.agents.getWhatsAppConnectURL('budget_assistant');
-    setWhatsappUrl(url);
-  }, []);
-
-  if (!whatsappUrl) return null;
+  const whatsappUrl = base44.agents.getWhatsAppConnectURL('budget_assistant');
 
   return (
     <a
