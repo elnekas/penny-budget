@@ -28,10 +28,9 @@ export default function ChatInterface({ accountOwner, currentUser }) {
   const { data: messages = [], refetch: refetchMessages } = useQuery({
     queryKey: ['chatMessages', accountOwner],
     queryFn: () => accountOwner 
-      ? base44.entities.ChatMessage.filter({ account_owner: accountOwner }, '-created_date', 100)
+      ? base44.entities.ChatMessage.filter({ account_owner: accountOwner }, 'created_date', 100)
       : [],
-    enabled: !!accountOwner,
-    select: (data) => data.reverse() // Show oldest first
+    enabled: !!accountOwner
   });
 
   const scrollToBottom = () => {
