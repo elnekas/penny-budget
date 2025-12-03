@@ -18,8 +18,23 @@ const categoryIcons = {
 };
 
 export default function BudgetAlerts({ transactions, budgets, currencySymbol = '$' }) {
-  const [dismissedAlerts, setDismissedAlerts] = useState([]);
   const currentMonth = moment().format('YYYY-MM');
+  const storageKey = `dismissed_alerts_${currentMonth}`;
+  
+  const [dismissedAlerts, setDismissedAlerts] = useState(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const dismissAlert = (category) => {
+    const updated = [...dismissedAlerts, category];
+    setDismissedAlerts(updated);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+  };
   
   const currentBudgets = budgets.filter(b => b.month === currentMonth);
   
@@ -101,7 +116,7 @@ export default function BudgetAlerts({ transactions, budgets, currencySymbol = '
             {alert.percentUsed.toFixed(0)}%
           </div>
           <button
-            onClick={() => setDismissedAlerts(prev => [...prev, alert.category])}
+            onClick={() => dismissAlert(alert.category)}
             className={cn(
               "p-1 rounded-full hover:bg-white/50 transition-colors",
               alert.status === 'exceeded' ? "text-red-400" : "text-amber-400"

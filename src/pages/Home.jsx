@@ -197,7 +197,7 @@ export default function Home() {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        <div className="flex justify-around">
+        <div className="flex justify-around items-center">
           {[
                             { id: 'chat', icon: MessageCircle, label: 'Chat' },
                             { id: 'dashboard', icon: BarChart3, label: 'Dashboard' }
@@ -216,6 +216,7 @@ export default function Home() {
               <span className="text-xs font-medium">{tab.label}</span>
             </button>
           ))}
+          <WhatsAppButton className="flex flex-col items-center gap-1 py-2 px-4" />
         </div>
       </nav>
 
