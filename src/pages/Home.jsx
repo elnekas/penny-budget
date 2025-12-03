@@ -33,6 +33,7 @@ const currencies = [
 ];
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { cn } from "@/lib/utils";
+import moment from 'moment';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
