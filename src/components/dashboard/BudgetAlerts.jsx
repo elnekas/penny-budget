@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
-import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, AlertCircle, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const categoryIcons = {
@@ -18,6 +18,7 @@ const categoryIcons = {
 };
 
 export default function BudgetAlerts({ transactions, budgets, currencySymbol = '$' }) {
+  const [dismissedAlerts, setDismissedAlerts] = useState([]);
   const currentMonth = moment().format('YYYY-MM');
   
   const currentBudgets = budgets.filter(b => b.month === currentMonth);
@@ -51,7 +52,7 @@ export default function BudgetAlerts({ transactions, budgets, currencySymbol = '
       threshold,
       status
     };
-  }).filter(a => a.status !== 'ok');
+  }).filter(a => a.status !== 'ok' && !dismissedAlerts.includes(a.category));
 
   if (alerts.length === 0) return null;
 
@@ -99,6 +100,15 @@ export default function BudgetAlerts({ transactions, budgets, currencySymbol = '
           )}>
             {alert.percentUsed.toFixed(0)}%
           </div>
+          <button
+            onClick={() => setDismissedAlerts(prev => [...prev, alert.category])}
+            className={cn(
+              "p-1 rounded-full hover:bg-white/50 transition-colors",
+              alert.status === 'exceeded' ? "text-red-400" : "text-amber-400"
+            )}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       ))}
     </div>
