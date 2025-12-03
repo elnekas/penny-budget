@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Loader2, Sparkles, Plus, X, Paperclip } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import VoiceButton from './VoiceButton';
+import moment from 'moment';
 
 const quickPrompts = [
   "I spent $25 on lunch today",
@@ -14,8 +15,7 @@ const quickPrompts = [
   "Import: Coffee $5, Uber $12, Groceries $45"
 ];
 
-export default function ChatInterface() {
-  const [messages, setMessages] = useState([]);
+export default function ChatInterface({ accountOwner, currentUser }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
@@ -23,6 +23,16 @@ export default function ChatInterface() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Load chat history from database
+  const { data: messages = [], refetch: refetchMessages } = useQuery({
+    queryKey: ['chatMessages', accountOwner],
+    queryFn: () => accountOwner 
+      ? base44.entities.ChatMessage.filter({ account_owner: accountOwner }, '-created_date', 100)
+      : [],
+    enabled: !!accountOwner,
+    select: (data) => data.reverse() // Show oldest first
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,10 +64,20 @@ export default function ChatInterface() {
   };
 
   const sendMessage = async (text) => {
-    if ((!text.trim() && files.length === 0) || loading) return;
+    if ((!text.trim() && files.length === 0) || loading || !accountOwner) return;
 
-    const userMessage = { role: 'user', content: text, files: files.length > 0 ? [...files] : undefined };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage = { 
+      role: 'user', 
+      content: text, 
+      account_owner: accountOwner,
+      sender_name: currentUser?.full_name || 'Unknown',
+      sender_email: currentUser?.email
+    };
+    
+    // Save user message to database
+    await base44.entities.ChatMessage.create(userMessage);
+    refetchMessages();
+    
     setInput('');
     const currentFiles = [...files];
     setFiles([]);
@@ -73,9 +93,13 @@ export default function ChatInterface() {
       const assistantMessage = { 
         role: 'assistant', 
         content: response.data.message,
-        actions: response.data.actions 
+        account_owner: accountOwner,
+        sender_name: 'Penny'
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Save assistant message to database
+      await base44.entities.ChatMessage.create(assistantMessage);
+      refetchMessages();
 
       // Refresh data if actions were performed
       if (response.data.actions?.length > 0) {
@@ -84,10 +108,14 @@ export default function ChatInterface() {
       }
     } catch (e) {
       console.error('Chat error:', e);
-      setMessages(prev => [...prev, { 
+      const errorMessage = { 
         role: 'assistant', 
-        content: `Sorry, I had trouble processing that: ${e.response?.data?.error || e.message}` 
-      }]);
+        content: `Sorry, I had trouble processing that: ${e.response?.data?.error || e.message}`,
+        account_owner: accountOwner,
+        sender_name: 'Penny'
+      };
+      await base44.entities.ChatMessage.create(errorMessage);
+      refetchMessages();
     }
 
     setLoading(false);
@@ -128,7 +156,7 @@ export default function ChatInterface() {
           <>
             {messages.map((msg, idx) => (
               <div
-                key={idx}
+                key={msg.id || idx}
                 className={cn(
                   "flex",
                   msg.role === 'user' ? "justify-end" : "justify-start"
@@ -142,7 +170,18 @@ export default function ChatInterface() {
                       : "bg-white border border-slate-100 text-slate-800"
                   )}
                 >
+                  {msg.role === 'user' && msg.sender_name && (
+                    <p className="text-xs opacity-70 mb-1 font-medium">{msg.sender_name}</p>
+                  )}
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.created_date && (
+                    <p className={cn(
+                      "text-xs mt-1",
+                      msg.role === 'user' ? "opacity-60" : "text-slate-400"
+                    )}>
+                      {moment(msg.created_date).format('MMM D, h:mm A')}
+                    </p>
+                  )}
                   {msg.actions?.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-emerald-500/20">
                       {msg.actions.map((action, i) => (

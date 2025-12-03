@@ -219,7 +219,7 @@ export default function Home() {
         {/* Chat Tab */}
         {activeTab === 'chat' && (
           <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)]">
-            <ChatInterface />
+            <ChatInterface accountOwner={accountOwner} currentUser={user} />
           </div>
         )}
 
