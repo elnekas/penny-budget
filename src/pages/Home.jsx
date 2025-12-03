@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight } from 'lucide-react';
+import { MessageCircle, BarChart3, Upload, Sparkles, ChevronRight, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,13 +12,18 @@ import QuickStats from '@/components/dashboard/QuickStats';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import FileUploader from '@/components/upload/FileUploader';
 import TransactionReview from '@/components/upload/TransactionReview';
+import CurrencySelector, { currencies } from '@/components/CurrencySelector';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('chat');
   const [conversationId, setConversationId] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState(null);
+  const [currency, setCurrency] = useState('USD');
   const queryClient = useQueryClient();
+  
+  const currencySymbol = currencies.find(c => c.code === currency)?.symbol || '$';
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions'],
@@ -56,7 +61,7 @@ export default function Home() {
             </div>
             
             {/* Desktop Tabs */}
-            <div className="hidden md:flex">
+            <div className="hidden md:flex items-center gap-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-slate-100/80">
                   <TabsTrigger value="chat" className="gap-2">
@@ -73,6 +78,7 @@ export default function Home() {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
+              <CurrencySelector value={currency} onChange={setCurrency} compact />
             </div>
           </div>
         </div>
@@ -103,6 +109,9 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* WhatsApp FAB */}
+      <WhatsAppButton variant="fab" />
+
       {/* Content */}
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">
         {/* Chat Tab */}
@@ -118,7 +127,7 @@ export default function Home() {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="p-4 space-y-6">
-            <QuickStats transactions={transactions} budgets={budgets} />
+            <QuickStats transactions={transactions} budgets={budgets} currencySymbol={currencySymbol} />
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 border-0 shadow-sm">
@@ -126,7 +135,7 @@ export default function Home() {
                   <h3 className="font-semibold text-slate-800">Spending by Category</h3>
                   <Sparkles className="w-4 h-4 text-emerald-500" />
                 </div>
-                <SpendingChart transactions={transactions} />
+                <SpendingChart transactions={transactions} currencySymbol={currencySymbol} />
               </Card>
               
               <Card className="p-6 border-0 shadow-sm">
@@ -151,7 +160,7 @@ export default function Home() {
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
-              <RecentTransactions transactions={transactions} />
+              <RecentTransactions transactions={transactions} currencySymbol={currencySymbol} />
             </Card>
           </div>
         )}
