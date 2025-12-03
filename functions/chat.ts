@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, conversationHistory = [] } = await req.json();
+    const { message, conversationHistory = [], fileUrls = [] } = await req.json();
     const accountOwner = user.shared_with_account || user.email;
 
     // Get recent transactions for context
@@ -67,7 +67,18 @@ Be warm, encouraging, and use emojis occasionally. Keep responses concise.`;
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
       })),
-      { role: 'user', parts: [{ text: message }] }
+      { 
+        role: 'user', 
+        parts: [
+          { text: message },
+          ...fileUrls.map(url => ({
+            fileData: {
+              mimeType: url.includes('.pdf') ? 'application/pdf' : 'image/jpeg',
+              fileUri: url
+            }
+          }))
+        ]
+      }
     ];
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {

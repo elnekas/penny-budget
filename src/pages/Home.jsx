@@ -170,6 +170,7 @@ export default function Home() {
               >
                 <Users className="w-5 h-5" />
               </Button>
+              <WhatsAppButton />
             </div>
           </div>
           {isSharedAccount && (
@@ -206,8 +207,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* WhatsApp FAB */}
-      <WhatsAppButton variant="fab" />
+
 
       {/* Content */}
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">

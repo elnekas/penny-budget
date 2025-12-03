@@ -16,10 +16,11 @@ export default function SharedAccountManager({ user, accountOwner }) {
   const isOwner = user?.email === accountOwner;
 
   // Get shared accounts where user is owner
-  const { data: mySharedAccounts = [] } = useQuery({
+  const { data: mySharedAccounts = [], refetch: refetchShared } = useQuery({
     queryKey: ['sharedAccounts', 'owner', user?.email],
     queryFn: () => base44.entities.SharedAccount.filter({ owner_email: user?.email }),
-    enabled: !!user?.email && isOwner
+    enabled: !!user?.email && isOwner,
+    refetchInterval: 5000 // Refresh every 5 seconds to catch status updates
   });
 
   // Get invitations sent to this user
