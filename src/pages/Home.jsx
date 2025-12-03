@@ -196,7 +196,7 @@ export default function Home() {
       </header>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 py-2 safe-area-inset-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <div className="flex justify-around">
           {[
                             { id: 'chat', icon: MessageCircle, label: 'Chat' },
