@@ -3,7 +3,7 @@ import { TrendingDown, Wallet } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
 
-export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget, onEditCategoryBudgets }) {
+export default function QuickStats({ transactions, budgets, totalAllowance = 0, currencySymbol = '$', onEditCategoryBudgets }) {
   const currentMonth = moment().format('YYYY-MM');
   const [alertShown, setAlertShown] = React.useState({ variable: false, fixed: false });
   
@@ -19,22 +19,20 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
     .filter(t => t.amount < 0 && t.expense_type === 'fixed')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   
-  const categoryBudgetsTotal = budgets
+  const allocatedTotal = budgets
     .filter(b => b.month === currentMonth)
     .reduce((sum, b) => sum + b.monthly_limit, 0);
   
-  const variableBudgetRemaining = categoryBudgetsTotal - variableSpent;
-  const budgetPercent = categoryBudgetsTotal > 0 ? (variableSpent / categoryBudgetsTotal) * 100 : 0;
+  const variableBudgetRemaining = totalAllowance - variableSpent;
+  const budgetPercent = totalAllowance > 0 ? (variableSpent / totalAllowance) * 100 : 0;
 
   // Alert when budget is exceeded
   React.useEffect(() => {
-    if (categoryBudgetsTotal > 0 && variableSpent > categoryBudgetsTotal && !alertShown.variable) {
-      alert(`⚠️ You've exceeded your variable budget! Spent ${currencySymbol}${variableSpent.toFixed(0)} of ${currencySymbol}${categoryBudgetsTotal.toFixed(0)}`);
+    if (totalAllowance > 0 && variableSpent > totalAllowance && !alertShown.variable) {
+      alert(`⚠️ You've exceeded your monthly allowance! Spent ${currencySymbol}${variableSpent.toFixed(0)} of ${currencySymbol}${totalAllowance.toFixed(0)}`);
       setAlertShown(prev => ({ ...prev, variable: true }));
     }
-  }, [variableSpent, categoryBudgetsTotal, alertShown.variable, currencySymbol]);
-
-  const categoryBudgetCount = budgets.filter(b => b.month === currentMonth).length;
+  }, [variableSpent, totalAllowance, alertShown.variable, currencySymbol]);
 
   const stats = [
     {
@@ -43,16 +41,16 @@ export default function QuickStats({ transactions, budgets, currencySymbol = '$'
       icon: TrendingDown,
       color: 'from-rose-500 to-pink-500',
       bgColor: 'bg-rose-50',
-      subtext: `of ${currencySymbol}${categoryBudgetsTotal.toFixed(0)} allocated`,
+      subtext: `of ${currencySymbol}${allocatedTotal.toFixed(0)} allocated`,
       onClick: onEditCategoryBudgets
     },
     {
       label: 'Monthly Allowance Left',
-      value: categoryBudgetsTotal > 0 ? `${currencySymbol}${variableBudgetRemaining.toFixed(0)}` : 'Not set',
+      value: totalAllowance > 0 ? `${currencySymbol}${variableBudgetRemaining.toFixed(0)}` : 'Not set',
       icon: Wallet,
       color: 'from-blue-500 to-indigo-500',
       bgColor: 'bg-blue-50',
-      subtext: categoryBudgetsTotal > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Set category budgets',
+      subtext: totalAllowance > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Set allowance',
       onClick: onEditCategoryBudgets
     }
   ];
