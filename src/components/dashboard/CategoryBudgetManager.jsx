@@ -21,7 +21,7 @@ const categories = [
   { value: 'other', label: '📦 Other' }
 ];
 
-export default function CategoryBudgetManager({ budgets, accountOwner, onClose, onSave }) {
+export default function CategoryBudgetManager({ budgets, totalAllowance, accountOwner, onClose, onSave, onEditAllowance }) {
   const currentMonth = moment().format('YYYY-MM');
   const currentBudgets = budgets.filter(b => b.month === currentMonth);
   
@@ -36,6 +36,8 @@ export default function CategoryBudgetManager({ budgets, accountOwner, onClose, 
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const allocatedTotal = editedBudgets.reduce((sum, b) => sum + Number(b.monthly_limit || 0), 0);
+  const remainingToAllocate = totalAllowance - allocatedTotal;
   const usedCategories = editedBudgets.map(b => b.category);
   const availableCategories = categories.filter(c => !usedCategories.includes(c.value));
 
@@ -99,6 +101,40 @@ export default function CategoryBudgetManager({ budgets, accountOwner, onClose, 
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
           </Button>
+        </div>
+        
+        {/* Total Allowance Header */}
+        <div className="px-4 pt-4">
+          <div 
+            onClick={onEditAllowance}
+            className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 cursor-pointer hover:border-emerald-200 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-slate-600">Monthly Allowance</span>
+              <span className="text-lg font-bold text-emerald-700">${totalAllowance.toFixed(0)}</span>
+            </div>
+            <div className="h-2 bg-white rounded-full overflow-hidden">
+              <div 
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  allocatedTotal > totalAllowance ? "bg-red-400" : "bg-emerald-400"
+                )}
+                style={{ width: `${Math.min((allocatedTotal / totalAllowance) * 100, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-2 text-xs">
+              <span className={cn(
+                allocatedTotal > totalAllowance ? "text-red-600" : "text-slate-500"
+              )}>
+                ${allocatedTotal.toFixed(0)} allocated
+              </span>
+              <span className={cn(
+                remainingToAllocate < 0 ? "text-red-600 font-medium" : "text-emerald-600"
+              )}>
+                {remainingToAllocate >= 0 ? `$${remainingToAllocate.toFixed(0)} left to allocate` : `$${Math.abs(remainingToAllocate).toFixed(0)} over budget!`}
+              </span>
+            </div>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
