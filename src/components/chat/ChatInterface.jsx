@@ -196,7 +196,7 @@ export default function ChatInterface() {
             type="file"
             ref={fileInputRef}
             onChange={handleFileSelect}
-            accept="image/*,.pdf,.csv"
+            accept="image/*,.pdf,.csv,.xlsx,.xls"
             multiple
             className="hidden"
           />
