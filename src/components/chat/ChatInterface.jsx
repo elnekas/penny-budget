@@ -83,9 +83,10 @@ export default function ChatInterface() {
         queryClient.invalidateQueries({ queryKey: ['budgets'] });
       }
     } catch (e) {
+      console.error('Chat error:', e);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "Sorry, I had trouble processing that. Please try again! 😅" 
+        content: `Sorry, I had trouble processing that: ${e.response?.data?.error || e.message}` 
       }]);
     }
 

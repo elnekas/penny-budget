@@ -187,6 +187,7 @@ Be warm, encouraging, and use emojis occasionally. Keep responses concise.`;
     });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Chat error:', error);
+    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
 });
