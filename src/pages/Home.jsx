@@ -259,7 +259,11 @@ const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
                                         <option value="fixed">🔄 Fixed</option>
                                       </select>
                                     </div>
-                                    <SpendingChart transactions={transactions.filter(t => (t.expense_type || 'variable') === filterExpenseType)} currencySymbol={currencySymbol} />
+                                    <SpendingChart 
+                                      transactions={transactions.filter(t => (t.expense_type || 'variable') === filterExpenseType)} 
+                                      budgets={budgets.filter(b => b.month === moment().format('YYYY-MM'))}
+                                      currencySymbol={currencySymbol} 
+                                    />
                                   </Card>
               
               <Card className="p-6 border-0 shadow-sm">
