@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import * as XLSX from 'npm:xlsx@0.18.5';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
@@ -15,17 +14,6 @@ async function buildUserParts(message, fileUrls) {
       if (url.toLowerCase().includes('.csv') || contentType.includes('csv') || contentType.includes('text')) {
         const textContent = await response.text();
         parts[0].text += `\n\nCSV FILE CONTENT:\n${textContent}`;
-      } else if (url.toLowerCase().includes('.xlsx') || url.toLowerCase().includes('.xls') || contentType.includes('spreadsheet') || contentType.includes('excel')) {
-        // For Excel files, parse and convert to text
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        let excelContent = '';
-        for (const sheetName of workbook.SheetNames) {
-          const sheet = workbook.Sheets[sheetName];
-          const csv = XLSX.utils.sheet_to_csv(sheet);
-          excelContent += `\nSHEET: ${sheetName}\n${csv}\n`;
-        }
-        parts[0].text += `\n\nEXCEL FILE CONTENT:${excelContent}`;
       } else {
         // For images and PDFs, use inline data
         const arrayBuffer = await response.arrayBuffer();
@@ -40,6 +28,8 @@ async function buildUserParts(message, fileUrls) {
         if (url.toLowerCase().includes('.pdf')) mimeType = 'application/pdf';
         else if (url.toLowerCase().includes('.png')) mimeType = 'image/png';
         else if (url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg')) mimeType = 'image/jpeg';
+        else if (url.toLowerCase().includes('.xlsx')) mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        else if (url.toLowerCase().includes('.xls')) mimeType = 'application/vnd.ms-excel';
         
         parts.push({
           inlineData: {
