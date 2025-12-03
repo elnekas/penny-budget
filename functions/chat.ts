@@ -2,6 +2,37 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
+async function buildUserParts(message, fileUrls) {
+  const parts = [{ text: message }];
+  
+  for (const url of fileUrls) {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // Determine mime type from URL or content-type header
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      let mimeType = contentType.split(';')[0];
+      
+      if (url.toLowerCase().includes('.pdf')) mimeType = 'application/pdf';
+      else if (url.toLowerCase().includes('.png')) mimeType = 'image/png';
+      else if (url.toLowerCase().includes('.csv')) mimeType = 'text/csv';
+      
+      parts.push({
+        inlineData: {
+          mimeType,
+          data: base64
+        }
+      });
+    } catch (e) {
+      console.error('Failed to fetch file:', url, e);
+    }
+  }
+  
+  return parts;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -69,15 +100,7 @@ Be warm, encouraging, and use emojis occasionally. Keep responses concise.`;
       })),
       { 
         role: 'user', 
-        parts: [
-          { text: message },
-          ...fileUrls.map(url => ({
-            fileData: {
-              mimeType: url.includes('.pdf') ? 'application/pdf' : 'image/jpeg',
-              fileUri: url
-            }
-          }))
-        ]
+        parts: await buildUserParts(message, fileUrls)
       }
     ];
 
