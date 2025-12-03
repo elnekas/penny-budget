@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingDown, Wallet } from 'lucide-react';
 import moment from 'moment';
 import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function QuickStats({ transactions, budgets, currencySymbol = '$', onEditBudget }) {
   const currentMonth = moment().format('YYYY-MM');
