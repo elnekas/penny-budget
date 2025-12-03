@@ -37,7 +37,7 @@ export default function Home() {
   const [exporting, setExporting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
-  const [filterExpenseType, setFilterExpenseType] = useState('all');
+  const [filterExpenseType, setFilterExpenseType] = useState('variable');
   
   
   const [currency, setCurrency] = useState('USD');
@@ -230,12 +230,19 @@ export default function Home() {
             
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 border-0 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">Spending by Category</h3>
-                  <Sparkles className="w-4 h-4 text-emerald-500" />
-                </div>
-                <SpendingChart transactions={transactions} currencySymbol={currencySymbol} />
-              </Card>
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h3 className="font-semibold text-slate-800">Spending by Category</h3>
+                                      <select 
+                                        value={filterExpenseType} 
+                                        onChange={(e) => setFilterExpenseType(e.target.value)}
+                                        className="text-sm border rounded-md px-2 py-1 text-slate-600"
+                                      >
+                                        <option value="variable">📊 Variable</option>
+                                        <option value="fixed">🔄 Fixed</option>
+                                      </select>
+                                    </div>
+                                    <SpendingChart transactions={transactions.filter(t => (t.expense_type || 'variable') === filterExpenseType)} currencySymbol={currencySymbol} />
+                                  </Card>
               
               <Card className="p-6 border-0 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
