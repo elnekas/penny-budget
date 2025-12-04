@@ -22,6 +22,12 @@ export default function QuickStats({ transactions, budgets, totalAllowance = 0, 
   const variableBudgetRemaining = totalAllowance - variableSpent;
   const budgetPercent = totalAllowance > 0 ? (variableSpent / totalAllowance) * 100 : 0;
 
+  // Calculate weekly safe spend
+  const endOfMonth = moment().endOf('month');
+  const daysRemaining = Math.max(endOfMonth.diff(moment(), 'days'), 1); // Avoid division by zero
+  const weeksRemaining = daysRemaining / 7;
+  const weeklySafeSpend = Math.max(variableBudgetRemaining / weeksRemaining, 0);
+
   // Alert when budget is exceeded
   React.useEffect(() => {
     if (totalAllowance > 0 && variableSpent > totalAllowance && !alertShown.variable) {
@@ -48,11 +54,20 @@ export default function QuickStats({ transactions, budgets, totalAllowance = 0, 
       bgColor: 'bg-blue-50',
       subtext: totalAllowance > 0 ? `${(100 - budgetPercent).toFixed(0)}% remaining` : 'Set allowance',
       onClick: onEditCategoryBudgets
-    }
-  ];
+      },
+      {
+      label: 'Weekly Safe Spend',
+      value: totalAllowance > 0 ? `${currencySymbol}${weeklySafeSpend.toFixed(0)}` : 'Not set',
+      icon: Wallet, // Reusing Wallet icon, or could use Calendar
+      color: 'from-emerald-500 to-teal-500',
+      bgColor: 'bg-emerald-50',
+      subtext: 'for remaining weeks',
+      onClick: onEditCategoryBudgets
+      }
+      ];
 
-  return (
-    <div className="grid grid-cols-2 gap-3">
+      return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {stats.map((stat, idx) => (
         <div 
           key={idx}
