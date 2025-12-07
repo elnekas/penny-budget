@@ -145,8 +145,9 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <PennySkinManager>
                 <PennyCharacter 
-                  size={40} 
+                  size={activeTab === 'chat' ? 120 : 40} 
                   animation={activeTab === 'chat' ? 'working' : 'meditating'}
+                  className="transition-all duration-500 ease-in-out"
                 />
               </PennySkinManager>
               <div>
