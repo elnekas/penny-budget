@@ -22,15 +22,50 @@ export default function PennyCharacter({
   });
   const activeSkin = skins?.find(s => s.is_active);
 
-  let currentState = 'meditating';
-  if (hasError) currentState = 'failure';
-  else if (isSuccess) currentState = 'success';
-  else if (isThinking) currentState = 'working';
-  else if (animation === 'thinking') currentState = 'working';
-  else if (animation === 'idle' || animation === 'meditating') currentState = 'meditating';
-  else currentState = animation;
+  const [internalState, setInternalState] = useState('meditating');
+
+  useEffect(() => {
+    if (hasError) {
+      setInternalState('failure');
+      return;
+    }
+    if (isSuccess) {
+      setInternalState('success');
+      return;
+    }
+    if (isThinking) {
+      setInternalState('working');
+      return;
+    }
+
+    // Handle transitions based on animation prop
+    if (animation === 'working' && internalState === 'meditating') {
+      setInternalState('waking_up');
+      const timer = setTimeout(() => setInternalState('working'), 2500); // 2.5s transition
+      return () => clearTimeout(timer);
+    } 
+    
+    if (animation === 'thinking') {
+      setInternalState('working');
+    } else if (animation === 'idle' || animation === 'meditating') {
+      setInternalState('meditating');
+    } else {
+      setInternalState(animation);
+    }
+  }, [animation, hasError, isSuccess, isThinking]);
 
   const getSkinUrl = () => {
+    if (!activeSkin) return null;
+    const state = internalState;
+    switch (state) {
+      case 'meditating': return activeSkin.meditating_url;
+      case 'waking_up': return activeSkin.waking_up_url || activeSkin.working_url;
+      case 'working': return activeSkin.working_url || activeSkin.meditating_url;
+      case 'success': return activeSkin.success_url || activeSkin.working_url;
+      case 'failure': return activeSkin.failure_url || activeSkin.meditating_url;
+      default: return activeSkin.meditating_url;
+    }
+  };
     if (!activeSkin) return null;
     switch (currentState) {
       case 'meditating': return activeSkin.meditating_url;

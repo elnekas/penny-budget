@@ -61,9 +61,9 @@ export default function PennySkinManager({ children }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild onClick={ensureSkin}>
+      <div onContextMenu={(e) => { e.preventDefault(); ensureSkin(); setIsOpen(true); }}>
         {children}
-      </DialogTrigger>
+      </div>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

@@ -144,7 +144,10 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <PennySkinManager>
-                <PennyCharacter size={40} />
+                <PennyCharacter 
+                  size={40} 
+                  animation={activeTab === 'chat' ? 'working' : 'meditating'}
+                />
               </PennySkinManager>
               <div>
                 <h1 className="text-xl font-bold text-slate-800">Penny</h1>
