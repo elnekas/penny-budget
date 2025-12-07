@@ -66,16 +66,6 @@ export default function PennyCharacter({
       default: return activeSkin.meditating_url;
     }
   };
-    if (!activeSkin) return null;
-    switch (currentState) {
-      case 'meditating': return activeSkin.meditating_url;
-      case 'waking_up': return activeSkin.waking_up_url || activeSkin.working_url;
-      case 'working': return activeSkin.working_url || activeSkin.meditating_url;
-      case 'success': return activeSkin.success_url || activeSkin.working_url;
-      case 'failure': return activeSkin.failure_url || activeSkin.meditating_url;
-      default: return activeSkin.meditating_url;
-    }
-  };
 
   const skinUrl = getSkinUrl();
 
