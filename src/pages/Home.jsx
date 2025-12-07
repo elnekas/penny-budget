@@ -106,10 +106,21 @@ export default function Home() {
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', accountOwner],
-    queryFn: () => accountOwner 
-      ? base44.entities.Transaction.filter({ account_owner: accountOwner }, '-date', 100)
-      : [],
-    enabled: !!accountOwner
+    queryFn: async () => {
+      if (!accountOwner) return [];
+      
+      const byOwner = await base44.entities.Transaction.filter({ account_owner: accountOwner }, '-date', 100);
+      
+      let myCreated = [];
+      if (user && accountOwner === user.email) {
+        myCreated = await base44.entities.Transaction.filter({ created_by: user.email }, '-date', 100);
+      }
+      
+      const all = [...byOwner, ...myCreated];
+      const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
+      return unique.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 100);
+    },
+    enabled: !!accountOwner && !!user
   });
 
   const { data: budgets = [] } = useQuery({
