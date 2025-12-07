@@ -22,6 +22,9 @@ import CurrencySelector from '@/components/CurrencySelector';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import SharedAccountManager from '@/components/sharing/SharedAccountManager';
 
+import PennyCharacter from '@/components/penny/PennyCharacter';
+import PennySkinManager from '@/components/penny/PennySkinManager';
+
 const currencies = [
   { code: 'USD', symbol: '$' },
   { code: 'EUR', symbol: '€' },
@@ -140,9 +143,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-200">
-                <span className="text-xl">💰</span>
-              </div>
+              <PennySkinManager>
+                <PennyCharacter size={40} />
+              </PennySkinManager>
               <div>
                 <h1 className="text-xl font-bold text-slate-800">Penny</h1>
                 <p className="text-xs text-slate-400">Your Budget Buddy</p>
