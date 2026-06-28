@@ -15,7 +15,22 @@
         "travel",
         "groceries",
         "subscriptions",
-        "other"
+        "income",
+        "savings",
+        "other",
+        "mortgage",
+        "car_payment",
+        "insurance",
+        "tuition",
+        "kids_allowance",
+        "phone_internet",
+        "electricity_water",
+        "arnona",
+        "credit_card_payment",
+        "fuel",
+        "clothing",
+        "household",
+        "maaser"
       ],
       "description": "Budget category"
     },

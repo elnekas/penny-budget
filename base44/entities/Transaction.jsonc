@@ -21,7 +21,20 @@
         "subscriptions",
         "income",
         "savings",
-        "other"
+        "other",
+        "mortgage",
+        "car_payment",
+        "insurance",
+        "tuition",
+        "kids_allowance",
+        "phone_internet",
+        "electricity_water",
+        "arnona",
+        "credit_card_payment",
+        "fuel",
+        "clothing",
+        "household",
+        "maaser"
       ],
       "description": "Spending category"
     },
@@ -45,12 +58,6 @@
     },
     "source": {
       "type": "string",
-      "enum": [
-        "voice",
-        "manual",
-        "import"
-      ],
-      "default": "manual",
       "description": "How the transaction was added"
     },
     "merchant": {
