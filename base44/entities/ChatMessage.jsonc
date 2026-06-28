@@ -1,0 +1,35 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Who sent the message"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "account_owner": {
+      "type": "string",
+      "description": "Email of the main account owner"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of the user who sent the message"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of the user who sent the message"
+    }
+  },
+  "required": [
+    "role",
+    "content",
+    "account_owner"
+  ]
+}

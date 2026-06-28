@@ -1,0 +1,56 @@
+{
+  "name": "BankSyncRequest",
+  "type": "object",
+  "properties": {
+    "account_owner": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "completed_with_errors",
+        "failed"
+      ]
+    },
+    "days_back": {
+      "type": "number"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "picked_up_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_count": {
+      "type": "number"
+    },
+    "skipped_count": {
+      "type": "number"
+    },
+    "failure_count": {
+      "type": "number"
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_owner",
+    "state",
+    "days_back",
+    "requested_by",
+    "requested_at"
+  ]
+}

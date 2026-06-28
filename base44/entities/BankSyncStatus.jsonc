@@ -1,0 +1,34 @@
+{
+  "name": "BankSyncStatus",
+  "type": "object",
+  "properties": {
+    "account_owner": {
+      "type": "string"
+    },
+    "last_successful_scrape": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_count": {
+      "type": "number"
+    },
+    "skipped_count": {
+      "type": "number"
+    },
+    "failure_count": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "account_owner",
+    "last_successful_scrape",
+    "last_completed_at",
+    "created_count",
+    "skipped_count",
+    "failure_count"
+  ]
+}

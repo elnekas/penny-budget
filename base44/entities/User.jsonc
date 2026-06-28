@@ -1,0 +1,32 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "preferred_currency": {
+      "type": "string",
+      "description": "User's preferred currency code"
+    },
+    "monthly_income": {
+      "type": "number",
+      "description": "User's monthly income"
+    },
+    "savings_goal": {
+      "type": "number",
+      "description": "Monthly savings goal"
+    },
+    "monthly_allowance": {
+      "type": "number",
+      "description": "Total monthly variable spending allowance"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether onboarding is complete"
+    },
+    "shared_with_account": {
+      "type": "string",
+      "description": "Email of account owner if this user is a shared member"
+    }
+  },
+  "required": []
+}

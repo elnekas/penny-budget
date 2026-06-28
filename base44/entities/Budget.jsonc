@@ -1,0 +1,45 @@
+{
+  "name": "Budget",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "food",
+        "transport",
+        "shopping",
+        "entertainment",
+        "bills",
+        "health",
+        "education",
+        "travel",
+        "groceries",
+        "subscriptions",
+        "other"
+      ],
+      "description": "Budget category"
+    },
+    "monthly_limit": {
+      "type": "number",
+      "description": "Monthly spending limit for this category"
+    },
+    "alert_threshold": {
+      "type": "number",
+      "default": 80,
+      "description": "Percentage threshold to trigger warning alert (e.g., 80 means alert at 80% spent)"
+    },
+    "month": {
+      "type": "string",
+      "description": "Month in YYYY-MM format"
+    },
+    "account_owner": {
+      "type": "string",
+      "description": "Email of the main account owner (for shared accounts)"
+    }
+  },
+  "required": [
+    "category",
+    "monthly_limit",
+    "month"
+  ]
+}

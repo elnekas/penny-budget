@@ -1,0 +1,38 @@
+{
+  "name": "PennySkin",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the skin configuration"
+    },
+    "meditating_url": {
+      "type": "string",
+      "description": "GIF for closed/idle state"
+    },
+    "waking_up_url": {
+      "type": "string",
+      "description": "GIF for transition when opening chat"
+    },
+    "working_url": {
+      "type": "string",
+      "description": "GIF for active conversation/thinking"
+    },
+    "success_url": {
+      "type": "string",
+      "description": "GIF for success state"
+    },
+    "failure_url": {
+      "type": "string",
+      "description": "GIF for error state"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the currently active skin"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

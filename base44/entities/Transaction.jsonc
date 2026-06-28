@@ -1,0 +1,75 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount (positive for income, negative for expense)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "food",
+        "transport",
+        "shopping",
+        "entertainment",
+        "bills",
+        "health",
+        "education",
+        "travel",
+        "groceries",
+        "subscriptions",
+        "income",
+        "savings",
+        "other"
+      ],
+      "description": "Spending category"
+    },
+    "expense_type": {
+      "type": "string",
+      "enum": [
+        "fixed",
+        "variable"
+      ],
+      "default": "variable",
+      "description": "Fixed (recurring monthly) or Variable (no set recurrence)"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the transaction was for"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Transaction date"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "voice",
+        "manual",
+        "import"
+      ],
+      "default": "manual",
+      "description": "How the transaction was added"
+    },
+    "merchant": {
+      "type": "string",
+      "description": "Store or vendor name"
+    },
+    "account_owner": {
+      "type": "string",
+      "description": "Email of the main account owner (for shared accounts)"
+    },
+    "added_by_name": {
+      "type": "string",
+      "description": "Name of the user who added this transaction"
+    }
+  },
+  "required": [
+    "amount",
+    "category",
+    "description",
+    "date"
+  ]
+}

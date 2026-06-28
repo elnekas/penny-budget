@@ -1,0 +1,32 @@
+{
+  "name": "SharedAccount",
+  "type": "object",
+  "properties": {
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the account owner"
+    },
+    "member_email": {
+      "type": "string",
+      "description": "Email of the invited member"
+    },
+    "member_name": {
+      "type": "string",
+      "description": "Display name of the member"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "default": "pending",
+      "description": "Invitation status"
+    }
+  },
+  "required": [
+    "owner_email",
+    "member_email"
+  ]
+}
