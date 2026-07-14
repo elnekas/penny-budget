@@ -12,8 +12,8 @@ export default function RiseUpMonthlyChart({ data }) {
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
           <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(val) => fmt(val)} />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-          <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="Income" fill="#3b82f6" radius={[8, 8, 8, 8]} maxBarSize={28} />
+          <Bar dataKey="Expense" fill="#fb7185" radius={[8, 8, 8, 8]} maxBarSize={28} />
         </BarChart>
       </ResponsiveContainer>
     </div>
