@@ -1,0 +1,22 @@
+{
+  "name": "RiseUpOverride",
+  "type": "object",
+  "properties": {
+    "tx_id": {
+      "type": "string",
+      "description": "Stable id of the RiseUp transaction this override applies to"
+    },
+    "category": {
+      "type": "string",
+      "description": "Manually assigned category (overrides the RiseUp category)"
+    },
+    "ignored": {
+      "type": "boolean",
+      "default": false,
+      "description": "Exclude this transaction from totals (duplicate / internal)"
+    }
+  },
+  "required": [
+    "tx_id"
+  ]
+}

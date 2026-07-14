@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, BarChart3, Sparkles, ChevronRight, Users, CloudUpload, Loader2 } from 'lucide-react';
+import { MessageCircle, BarChart3, Sparkles, ChevronRight, Users, CloudUpload, Loader2, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -200,6 +201,11 @@ export default function Home() {
               >
                 <Users className="w-5 h-5" />
               </Button>
+              <Link to="/riseup-dashboard">
+                <Button variant="ghost" size="icon" className="text-slate-600" title="RiseUp Insights">
+                  <TrendingUp className="w-5 h-5" />
+                </Button>
+              </Link>
               <WhatsAppButton />
             </div>
           </div>
@@ -234,6 +240,10 @@ export default function Home() {
               <span className="text-xs font-medium">{tab.label}</span>
             </button>
           ))}
+          <Link to="/riseup-dashboard" className="flex flex-col items-center gap-1 py-2 px-4 rounded-xl text-slate-400">
+            <TrendingUp className="w-5 h-5" />
+            <span className="text-xs font-medium">RiseUp</span>
+          </Link>
           <WhatsAppButton className="flex flex-col items-center gap-1 py-2 px-4" />
         </div>
       </nav>
