@@ -23,6 +23,10 @@
     {
       "function_name": "syncBankTransactions",
       "description": "Starts the secure local Leumi bank sync or checks its current/last-successful status. Use action 'start' with days_back, or action 'status'. Never request bank credentials."
+    },
+    {
+      "function_name": "getRiseUpData",
+      "description": "Fetches the user's live RiseUp bank data (last 6 months) with monthly totals, category/group breakdowns, top expenses and possible duplicates \u2014 reflecting the user's manual recategorizations and ignored items."
     }
   ],
   "context_files": [],

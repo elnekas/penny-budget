@@ -34,7 +34,11 @@ export function useRiseUpData() {
   const snapshot = snapshotQ.data;
   let transactions = [];
   if (snapshot) {
-    const ovMap = new Map((overridesQ.data || []).map(o => [o.tx_id, o]));
+    // Newest override wins (list is sorted newest-first)
+    const ovMap = new Map();
+    (overridesQ.data || []).forEach(o => {
+      if (!ovMap.has(o.tx_id)) ovMap.set(o.tx_id, o);
+    });
     const dupCount = {};
     snapshot.transactions.forEach(t => {
       const k = t.name + '|' + t.amt + '|' + t.td;
