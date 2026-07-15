@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { groupForCategory } from './riseupGroups';
 
-export const RISEUP_DATA_URL = 'https://media.base44.com/files/public/69b7ce97ba10383cab6b7215/5e2b6fe26_finance_snapshot.json';
+export const RISEUP_DATA_URL = 'https://golem-ab6b7215.base44.app/functions/financeSnapshot';
 
 export function useRiseUpData() {
   const queryClient = useQueryClient();
