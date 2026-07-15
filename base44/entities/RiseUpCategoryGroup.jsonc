@@ -1,0 +1,18 @@
+{
+  "name": "RiseUpCategoryGroup",
+  "type": "object",
+  "properties": {
+    "category_name": {
+      "type": "string",
+      "description": "Category display name this override applies to"
+    },
+    "group": {
+      "type": "string",
+      "description": "Group id (e.g. food, dining, housing) to place this category in"
+    }
+  },
+  "required": [
+    "category_name",
+    "group"
+  ]
+}

@@ -15,7 +15,7 @@ import RiseUpListControls from '@/components/riseup/RiseUpListControls';
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
 export default function RiseUpDashboard() {
-  const { snapshot, transactions, loading, error, saveOverride, saveRename, saveCategoryForName } = useRiseUpData();
+  const { snapshot, transactions, loading, error, saveOverride, saveRename, saveCategoryForName, saveCategoryGroup } = useRiseUpData();
 
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState('all');
@@ -220,6 +220,7 @@ export default function RiseUpDashboard() {
               categories={categories}
               onCategoryChange={(tx, cat) => saveCategoryForName.mutate({ name: tx.name, category: cat })}
               onRenameCategory={(oldName, newName) => saveRename.mutate({ oldName, newName })}
+              onGroupChange={(category, group) => saveCategoryGroup.mutate({ category, group })}
             />
           </Card>
         </div>

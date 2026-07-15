@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import { ChevronDown, ChevronRight, Pencil, Check, X } from 'lucide-react';
-import { fmt } from './riseupGroups';
+import { fmt, GROUPS } from './riseupGroups';
 
-export default function CategoryLine({ name, amount, txs, categories, onCategoryChange, onRename }) {
+export default function CategoryLine({ name, amount, txs, categories, groupId, onCategoryChange, onRename, onGroupChange }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(name);
@@ -51,6 +51,19 @@ export default function CategoryLine({ name, amount, txs, categories, onCategory
       </div>
       {open && (
         <div className="ml-5 mb-2 space-y-1 border-l border-slate-100 pl-2">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pb-1">
+            <span>Belongs to:</span>
+            <select
+              value={groupId}
+              onChange={e => onGroupChange(name, e.target.value)}
+              title="Move this category to another group"
+              className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border-0 cursor-pointer"
+            >
+              {Object.entries(GROUPS).filter(([id]) => id !== 'income').map(([id, g]) => (
+                <option key={id} value={id}>{g.emoji} {g.label}</option>
+              ))}
+            </select>
+          </div>
           {txs.sort((a, b) => b.amt - a.amt).map(t => (
             <div key={t.id} className="flex items-center gap-2 text-[11px] text-slate-500">
               <span className="flex-1 min-w-0 truncate" dir="auto">{t.name}</span>

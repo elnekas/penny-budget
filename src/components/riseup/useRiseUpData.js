@@ -27,6 +27,20 @@ export function useRiseUpData() {
     queryFn: () => base44.entities.RiseUpCategoryRename.list('-created_date', 500)
   });
 
+  const groupOverridesQ = useQuery({
+    queryKey: ['riseup-cat-groups'],
+    queryFn: () => base44.entities.RiseUpCategoryGroup.list('-created_date', 500)
+  });
+
+  const saveCategoryGroup = useMutation({
+    mutationFn: async ({ category, group }) => {
+      const existing = (groupOverridesQ.data || []).find(g => g.category_name === category);
+      if (existing) return base44.entities.RiseUpCategoryGroup.update(existing.id, { group });
+      return base44.entities.RiseUpCategoryGroup.create({ category_name: category, group });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['riseup-cat-groups'] })
+  });
+
   const saveCategoryForName = useMutation({
     mutationFn: async ({ name, category }) => {
       const txIds = (snapshotQ.data?.transactions || []).filter(t => t.name === name).map(t => t.id);
@@ -80,6 +94,10 @@ export function useRiseUpData() {
     (renamesQ.data || []).forEach(r => {
       if (!renameMap.has(r.old_name)) renameMap.set(r.old_name, r.new_name);
     });
+    const groupMap = new Map();
+    (groupOverridesQ.data || []).forEach(g => {
+      if (!groupMap.has(g.category_name)) groupMap.set(g.category_name, g.group);
+    });
     transactions = snapshot.transactions.map(t => {
       const ov = ovMap.get(t.id);
       let category = ov?.category || t.catName || 'General';
@@ -87,7 +105,7 @@ export function useRiseUpData() {
       return {
         ...t,
         category,
-        group: groupForCategory(category, t.inc),
+        group: t.inc ? 'income' : (groupMap.get(category) || groupForCategory(category, t.inc)),
         ignored: !!ov?.ignored,
         hasOverride: !!ov?.category,
         possibleDuplicate: dupCount[t.name + '|' + t.amt + '|' + t.td] > 1
@@ -102,6 +120,7 @@ export function useRiseUpData() {
     error: snapshotQ.error,
     saveOverride,
     saveRename,
-    saveCategoryForName
+    saveCategoryForName,
+    saveCategoryGroup
   };
 }

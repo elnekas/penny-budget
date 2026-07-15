@@ -4,7 +4,7 @@ import { GROUPS, fmt } from './riseupGroups';
 import { cn } from '@/lib/utils';
 import CategoryLine from './CategoryLine';
 
-export default function GroupBreakdown({ transactions, activeGroup, onSelectGroup, categories, onCategoryChange, onRenameCategory }) {
+export default function GroupBreakdown({ transactions, activeGroup, onSelectGroup, categories, onCategoryChange, onRenameCategory, onGroupChange }) {
   const [expanded, setExpanded] = useState(null);
 
   const expenses = transactions.filter(t => !t.inc && !t.ignored);
@@ -68,8 +68,10 @@ export default function GroupBreakdown({ transactions, activeGroup, onSelectGrou
                     amount={amt}
                     txs={expenses.filter(t => t.category === cat && t.group === gid)}
                     categories={categories}
+                    groupId={gid}
                     onCategoryChange={onCategoryChange}
                     onRename={onRenameCategory}
+                    onGroupChange={onGroupChange}
                   />
                 ))}
               </div>
