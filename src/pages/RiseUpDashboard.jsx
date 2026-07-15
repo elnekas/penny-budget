@@ -10,6 +10,7 @@ import RiseUpKpis from '@/components/riseup/RiseUpKpis';
 import RiseUpMonthlyChart from '@/components/riseup/RiseUpMonthlyChart';
 import GroupBreakdown from '@/components/riseup/GroupBreakdown';
 import RiseUpTransactionRow from '@/components/riseup/RiseUpTransactionRow';
+import RiseUpListControls from '@/components/riseup/RiseUpListControls';
 
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
@@ -24,6 +25,9 @@ export default function RiseUpDashboard() {
   const [dupsOnly, setDupsOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(60);
+  const [flowFilter, setFlowFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('amount_desc');
 
   useEffect(() => {
     if (snapshot && !selectedMonth) {
@@ -70,15 +74,26 @@ export default function RiseUpDashboard() {
 
     const dups = mTxs.filter(t => t.possibleDuplicate && !t.ignored).length;
 
+    const sorters = {
+      amount_desc: (a, b) => b.amt - a.amt,
+      amount_asc: (a, b) => a.amt - b.amt,
+      date_desc: (a, b) => new Date(b.td) - new Date(a.td),
+      date_asc: (a, b) => new Date(a.td) - new Date(b.td),
+      name_asc: (a, b) => (a.name || '').localeCompare(b.name || '')
+    };
+
     const lTxs = mTxs.filter(t => {
       if (activeGroup && t.group !== activeGroup) return false;
       if (dupsOnly && !t.possibleDuplicate) return false;
+      if (flowFilter === 'expense' && t.inc) return false;
+      if (flowFilter === 'income' && !t.inc) return false;
+      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (!(t.name || '').toLowerCase().includes(q) && !(t.category || '').toLowerCase().includes(q)) return false;
       }
       return true;
-    }).sort((a, b) => b.amt - a.amt);
+    }).sort(sorters[sortBy] || sorters.amount_desc);
 
     return {
       accounts: Array.from(accSet).sort(),
@@ -90,7 +105,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, categoryFilter, sortBy]);
 
   if (loading) {
     return (
@@ -211,6 +226,18 @@ export default function RiseUpDashboard() {
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
+          </div>
+
+          <div className="mb-4">
+            <RiseUpListControls
+              flow={flowFilter}
+              onFlowChange={v => { setFlowFilter(v); setVisibleCount(60); }}
+              category={categoryFilter}
+              onCategoryChange={v => { setCategoryFilter(v); setVisibleCount(60); }}
+              categories={categories}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+            />
           </div>
 
           <div className="space-y-2">
