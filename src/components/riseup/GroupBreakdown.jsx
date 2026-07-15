@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { GROUPS, fmt } from './riseupGroups';
 import { cn } from '@/lib/utils';
+import CategoryLine from './CategoryLine';
 
-export default function GroupBreakdown({ transactions, activeGroup, onSelectGroup }) {
+export default function GroupBreakdown({ transactions, activeGroup, onSelectGroup, categories, onCategoryChange, onRenameCategory }) {
   const [expanded, setExpanded] = useState(null);
 
   const expenses = transactions.filter(t => !t.inc && !t.ignored);
@@ -59,12 +60,17 @@ export default function GroupBreakdown({ transactions, activeGroup, onSelectGrou
               </button>
             </div>
             {isExpanded && (
-              <div className="px-4 pb-3 pl-11 space-y-1">
+              <div className="px-4 pb-3 pl-9">
                 {Object.entries(g.cats).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                  <div key={cat} className="flex justify-between text-xs text-slate-500">
-                    <span dir="auto">{cat}</span>
-                    <span className="font-medium">{fmt(amt)}</span>
-                  </div>
+                  <CategoryLine
+                    key={cat}
+                    name={cat}
+                    amount={amt}
+                    txs={expenses.filter(t => t.category === cat && t.group === gid)}
+                    categories={categories}
+                    onCategoryChange={onCategoryChange}
+                    onRename={onRenameCategory}
+                  />
                 ))}
               </div>
             )}

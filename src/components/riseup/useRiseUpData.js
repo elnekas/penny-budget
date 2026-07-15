@@ -22,6 +22,21 @@ export function useRiseUpData() {
     queryFn: () => base44.entities.RiseUpOverride.list('-created_date', 2000)
   });
 
+  const renamesQ = useQuery({
+    queryKey: ['riseup-renames'],
+    queryFn: () => base44.entities.RiseUpCategoryRename.list('-created_date', 500)
+  });
+
+  const saveRename = useMutation({
+    mutationFn: async ({ oldName, newName }) => {
+      const renames = renamesQ.data || [];
+      const existing = renames.find(r => r.new_name === oldName) || renames.find(r => r.old_name === oldName);
+      if (existing) return base44.entities.RiseUpCategoryRename.update(existing.id, { new_name: newName });
+      return base44.entities.RiseUpCategoryRename.create({ old_name: oldName, new_name: newName });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['riseup-renames'] })
+  });
+
   const saveOverride = useMutation({
     mutationFn: async ({ txId, changes }) => {
       const existing = (overridesQ.data || []).find(o => o.tx_id === txId);
@@ -44,9 +59,14 @@ export function useRiseUpData() {
       const k = t.name + '|' + t.amt + '|' + t.td;
       dupCount[k] = (dupCount[k] || 0) + 1;
     });
+    const renameMap = new Map();
+    (renamesQ.data || []).forEach(r => {
+      if (!renameMap.has(r.old_name)) renameMap.set(r.old_name, r.new_name);
+    });
     transactions = snapshot.transactions.map(t => {
       const ov = ovMap.get(t.id);
-      const category = ov?.category || t.catName || 'General';
+      let category = ov?.category || t.catName || 'General';
+      category = renameMap.get(category) || category;
       return {
         ...t,
         category,
@@ -61,8 +81,9 @@ export function useRiseUpData() {
   return {
     snapshot,
     transactions,
-    loading: snapshotQ.isLoading || overridesQ.isLoading,
+    loading: snapshotQ.isLoading || overridesQ.isLoading || renamesQ.isLoading,
     error: snapshotQ.error,
-    saveOverride
+    saveOverride,
+    saveRename
   };
 }

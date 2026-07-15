@@ -15,7 +15,7 @@ import RiseUpListControls from '@/components/riseup/RiseUpListControls';
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
 export default function RiseUpDashboard() {
-  const { snapshot, transactions, loading, error, saveOverride } = useRiseUpData();
+  const { snapshot, transactions, loading, error, saveOverride, saveRename } = useRiseUpData();
 
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState('all');
@@ -26,7 +26,7 @@ export default function RiseUpDashboard() {
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(60);
   const [flowFilter, setFlowFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortBy, setSortBy] = useState('amount_desc');
 
   useEffect(() => {
@@ -48,10 +48,14 @@ export default function RiseUpDashboard() {
       catSet.add(t.category);
     });
 
+    const chartBase = selectedCategories.length
+      ? base.filter(t => selectedCategories.includes(t.category))
+      : base;
+
     const cData = snapshot.months.map((m, idx) => {
       const isLatest = idx === snapshot.months.length - 1;
       let inc = 0, exp = 0;
-      base.forEach(t => {
+      chartBase.forEach(t => {
         if (t.m !== m || t.ignored) return;
         if (t.inc) inc += t.amt; else exp += t.amt;
       });
@@ -87,7 +91,7 @@ export default function RiseUpDashboard() {
       if (dupsOnly && !t.possibleDuplicate) return false;
       if (flowFilter === 'expense' && t.inc) return false;
       if (flowFilter === 'income' && !t.inc) return false;
-      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+      if (selectedCategories.length && !selectedCategories.includes(t.category)) return false;
       if (search) {
         const q = search.toLowerCase();
         if (!(t.name || '').toLowerCase().includes(q) && !(t.category || '').toLowerCase().includes(q)) return false;
@@ -105,7 +109,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, categoryFilter, sortBy]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy]);
 
   if (loading) {
     return (
@@ -203,7 +207,14 @@ export default function RiseUpDashboard() {
               Where the money goes
               {activeGroup && <span className="text-xs font-normal text-emerald-600 ml-2">(filtering list — tap again to clear)</span>}
             </h3>
-            <GroupBreakdown transactions={monthTxs} activeGroup={activeGroup} onSelectGroup={setActiveGroup} />
+            <GroupBreakdown
+              transactions={monthTxs}
+              activeGroup={activeGroup}
+              onSelectGroup={setActiveGroup}
+              categories={categories}
+              onCategoryChange={(tx, cat) => saveOverride.mutate({ txId: tx.id, changes: { category: cat } })}
+              onRenameCategory={(oldName, newName) => saveRename.mutate({ oldName, newName })}
+            />
           </Card>
         </div>
 
@@ -232,8 +243,8 @@ export default function RiseUpDashboard() {
             <RiseUpListControls
               flow={flowFilter}
               onFlowChange={v => { setFlowFilter(v); setVisibleCount(60); }}
-              category={categoryFilter}
-              onCategoryChange={v => { setCategoryFilter(v); setVisibleCount(60); }}
+              selectedCategories={selectedCategories}
+              onSelectedCategoriesChange={v => { setSelectedCategories(v); setVisibleCount(60); }}
               categories={categories}
               sortBy={sortBy}
               onSortChange={setSortBy}
