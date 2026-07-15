@@ -58,11 +58,19 @@ export default function CategoryLine({ name, amount, txs, categories, onCategory
               <span className="font-medium shrink-0">{fmt(t.amt)}</span>
               <select
                 value={t.category}
-                onChange={e => onCategoryChange(t, e.target.value)}
+                onChange={e => {
+                  if (e.target.value === '__new__') {
+                    const name = window.prompt('New category name:');
+                    if (name && name.trim()) onCategoryChange(t, name.trim());
+                  } else {
+                    onCategoryChange(t, e.target.value);
+                  }
+                }}
                 title="Reassign category"
                 className="text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 border-0 cursor-pointer max-w-[90px] shrink-0"
               >
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="__new__">＋ New category…</option>
               </select>
             </div>
           ))}

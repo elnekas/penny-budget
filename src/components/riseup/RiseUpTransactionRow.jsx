@@ -6,6 +6,14 @@ import { cn } from '@/lib/utils';
 
 export default function RiseUpTransactionRow({ t, categories, onCategoryChange, onToggleIgnore }) {
   const meta = GROUPS[t.group] || GROUPS.other;
+  const handleCategory = (val) => {
+    if (val === '__new__') {
+      const name = window.prompt('New category name:');
+      if (name && name.trim()) onCategoryChange(t, name.trim());
+    } else {
+      onCategoryChange(t, val);
+    }
+  };
   return (
     <div className={cn(
       "flex gap-3 p-3 rounded-xl border transition-opacity",
@@ -24,13 +32,14 @@ export default function RiseUpTransactionRow({ t, categories, onCategoryChange, 
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
           <select
             value={t.category}
-            onChange={(e) => onCategoryChange(t, e.target.value)}
+            onChange={(e) => handleCategory(e.target.value)}
             className={cn(
               "text-[11px] px-1.5 py-0.5 rounded-md border-0 cursor-pointer max-w-[140px]",
               t.hasOverride ? "bg-emerald-100 text-emerald-800 font-medium" : "bg-slate-100 text-slate-600"
             )}
           >
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="__new__">＋ New category…</option>
           </select>
           <span className="text-[11px] text-slate-400">{t.srcName}</span>
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded", t.fixed ? "bg-sky-50 text-sky-600" : "bg-slate-50 text-slate-500")}>
