@@ -27,6 +27,23 @@ export function useRiseUpData() {
     queryFn: () => base44.entities.RiseUpCategoryRename.list('-created_date', 500)
   });
 
+  const saveCategoryForName = useMutation({
+    mutationFn: async ({ name, category }) => {
+      const txIds = (snapshotQ.data?.transactions || []).filter(t => t.name === name).map(t => t.id);
+      const overrides = overridesQ.data || [];
+      const updates = [];
+      const creates = [];
+      txIds.forEach(id => {
+        const existing = overrides.find(o => o.tx_id === id);
+        if (existing) updates.push({ id: existing.id, category });
+        else creates.push({ tx_id: id, category });
+      });
+      if (updates.length) await base44.entities.RiseUpOverride.bulkUpdate(updates);
+      if (creates.length) await base44.entities.RiseUpOverride.bulkCreate(creates);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['riseup-overrides'] })
+  });
+
   const saveRename = useMutation({
     mutationFn: async ({ oldName, newName }) => {
       const renames = renamesQ.data || [];
@@ -84,6 +101,7 @@ export function useRiseUpData() {
     loading: snapshotQ.isLoading || overridesQ.isLoading || renamesQ.isLoading,
     error: snapshotQ.error,
     saveOverride,
-    saveRename
+    saveRename,
+    saveCategoryForName
   };
 }
