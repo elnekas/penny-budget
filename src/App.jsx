@@ -8,6 +8,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import RiseUpDashboard from './pages/RiseUpDashboard';
+import RiseUpAnalytics from './pages/RiseUpAnalytics';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -53,6 +54,11 @@ const AuthenticatedApp = () => {
       <Route path="/riseup-dashboard" element={
         <LayoutWrapper currentPageName="riseup-dashboard">
           <RiseUpDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/riseup-analytics" element={
+        <LayoutWrapper currentPageName="riseup-analytics">
+          <RiseUpAnalytics />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

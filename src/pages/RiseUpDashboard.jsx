@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
-import { ArrowLeft, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, AlertTriangle, Loader2, PieChart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
@@ -146,6 +146,12 @@ export default function RiseUpDashboard() {
               Live from RiseUp · updated {moment(snapshot.generated_at).format('D MMM, HH:mm')} · {transactions.length.toLocaleString()} transactions
             </p>
           </div>
+          <Link to="/riseup-analytics" className="ml-auto">
+            <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+              <PieChart className="w-4 h-4" />
+              Analytics
+            </Button>
+          </Link>
         </div>
       </header>
 
