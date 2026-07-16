@@ -1,10 +1,10 @@
 import React from 'react';
 import moment from 'moment';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ListFilter } from 'lucide-react';
 import { GROUPS, fmt } from './riseupGroups';
 import { cn } from '@/lib/utils';
 
-export default function RiseUpTransactionRow({ t, categories, onCategoryChange, onToggleIgnore }) {
+export default function RiseUpTransactionRow({ t, categories, onCategoryChange, onToggleIgnore, onFilterSimilar }) {
   const meta = GROUPS[t.group] || GROUPS.other;
   const handleCategory = (val) => {
     if (val === '__new__') {
@@ -63,6 +63,15 @@ export default function RiseUpTransactionRow({ t, categories, onCategoryChange, 
         </span>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-slate-400">{moment(t.td).format('D MMM')}</span>
+          {onFilterSimilar && (
+            <button
+              onClick={() => onFilterSimilar(t)}
+              title="Show all instances of this item"
+              className="text-slate-300 hover:text-emerald-600"
+            >
+              <ListFilter className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => onToggleIgnore(t)}
             title={t.ignored ? 'Include in totals' : 'Ignore (exclude from totals)'}

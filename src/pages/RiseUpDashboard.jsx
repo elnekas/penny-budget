@@ -273,6 +273,16 @@ export default function RiseUpDashboard() {
                 categories={categories}
                 onCategoryChange={(tx, cat) => saveCategoryForName.mutate({ name: tx.name, category: cat })}
                 onToggleIgnore={(tx) => saveOverride.mutate({ txId: tx.id, changes: { ignored: !tx.ignored } })}
+                onFilterSimilar={(tx) => {
+                  setSearch(tx.name || '');
+                  setSelectedMonth('all');
+                  setActiveGroup(null);
+                  setSelectedCategories([]);
+                  setFlowFilter('all');
+                  setDupsOnly(false);
+                  setVisibleCount(60);
+                  setSortBy('date_desc');
+                }}
               />
             ))}
           </div>
