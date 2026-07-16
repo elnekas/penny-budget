@@ -19,10 +19,6 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
     let rows = Object.entries(totalsBy(txs, t => t.name))
       .sort((a, b) => b[1] - a[1])
       .map(([k, v], i) => ({ name: k, value: Math.round(v), color: PALETTE[i % PALETTE.length] }));
-    if (rows.length > 7) {
-      const rest = rows.slice(7);
-      rows = [...rows.slice(0, 7), { name: 'Other income', value: rest.reduce((s, r) => s + r.value, 0), color: '#cbd5e1' }];
-    }
     // Break overseas income down per source
     const monthList = month === 'all' ? months : [month];
     (externals || []).filter(e => !isBuffer(e)).forEach((e, i) => {
