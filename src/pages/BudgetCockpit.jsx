@@ -14,7 +14,7 @@ export default function BudgetCockpit() {
   const {
     snapshot, transactions, monthly, months, categoryAvg,
     externals, externalForMonth, transfers,
-    goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, saveGoal, loadingBudget, error
+    goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, updateTransfer, saveOverride, saveGoal, loadingBudget, error
   } = useBudgetData();
 
   const { action, clear } = useContext(PennyActionContext);
@@ -93,8 +93,20 @@ export default function BudgetCockpit() {
           onDelete={(id) => deleteExternal.mutate(id)}
           transfers={transfers}
           candidates={transactions.filter(t => t.inc && t.ignored)}
-          onSaveTransfer={(d) => saveTransfer.mutate(d)}
-          onDeleteTransfer={(id) => deleteTransfer.mutate(id)}
+          onSaveTransfer={(d) => {
+            saveTransfer.mutate(d);
+            // Linking a RiseUp deposit makes it visible in the cash flow again
+            if (d.tx_id && d.counted_in_cashflow) saveOverride.mutate({ txId: d.tx_id, changes: { ignored: false } });
+          }}
+          onDeleteTransfer={(t) => {
+            deleteTransfer.mutate(t.id);
+            // Re-ignore the deposit if it was only visible because of this link
+            if (t.tx_id && t.counted_in_cashflow) saveOverride.mutate({ txId: t.tx_id, changes: { ignored: true } });
+          }}
+          onToggleCashflow={(t) => {
+            updateTransfer.mutate({ id: t.id, data: { counted_in_cashflow: !t.counted_in_cashflow } });
+            if (t.tx_id) saveOverride.mutate({ txId: t.tx_id, changes: { ignored: !!t.counted_in_cashflow } });
+          }}
         />
       </div>
 

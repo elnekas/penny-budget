@@ -39,6 +39,10 @@ export function useBudgetData() {
     mutationFn: (id) => base44.entities.DepositTransfer.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['deposit-transfers'] })
   });
+  const updateTransfer = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.DepositTransfer.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deposit-transfers'] })
+  });
   const saveGoal = useMutation({
     mutationFn: async ({ category, monthly_target }) => {
       const existing = (goalsQ.data || []).find(g => g.category === category);
@@ -102,6 +106,7 @@ export function useBudgetData() {
     deleteExternal,
     saveTransfer,
     deleteTransfer,
+    updateTransfer,
     saveGoal,
     loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading || transfersQ.isLoading
   };

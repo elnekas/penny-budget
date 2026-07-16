@@ -50,9 +50,20 @@ export function potRemainingUSD(e, transfers, throughMonth) {
   return remaining;
 }
 
+// ILS from transfers already visible (un-ignored) in the RiseUp cash flow for a month
+export function countedILSForMonth(e, month, transfers) {
+  return (transfers || [])
+    .filter(t => t.income_id === e.id && t.counted_in_cashflow && (t.date || '').slice(0, 7) === month)
+    .reduce((s, t) => s + (t.amount_ils || 0), 0);
+}
+
 // ILS this source contributes to a given month
+// (transfers already counted in the RiseUp cash flow are not re-added)
 export function monthlyILSForMonth(e, month, transfers) {
-  if (isPot(e)) return potDrawUSD(e, month, transfers) * (e.exchange_rate || 3.7);
+  if (isPot(e)) {
+    const gross = potDrawUSD(e, month, transfers) * (e.exchange_rate || 3.7);
+    return Math.max(gross - countedILSForMonth(e, month, transfers), 0);
+  }
   return monthlyILS(e);
 }
 

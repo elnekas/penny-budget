@@ -23,6 +23,15 @@
       "type": "string",
       "description": "Linked RiseUp transaction name (optional)"
     },
+    "tx_source": {
+      "type": "string",
+      "description": "Account/source name of the linked RiseUp transaction (optional)"
+    },
+    "counted_in_cashflow": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the linked RiseUp transaction is un-ignored and visible in the cash flow \u2014 the pot then does not re-add this amount to income"
+    },
     "notes": {
       "type": "string",
       "description": "Optional notes"

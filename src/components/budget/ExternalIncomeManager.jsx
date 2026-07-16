@@ -10,7 +10,7 @@ const inputCls = "w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg
 const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', end_date: '', deposit_day: '', monthly_slice_usd: '' };
 const currentMonth = new Date().toISOString().slice(0, 7);
 
-export default function ExternalIncomeManager({ externals, onSave, onDelete, transfers = [], candidates = [], onSaveTransfer, onDeleteTransfer }) {
+export default function ExternalIncomeManager({ externals, onSave, onDelete, transfers = [], candidates = [], onSaveTransfer, onDeleteTransfer, onToggleCashflow }) {
   const [form, setForm] = useState(null);
   const [openPot, setOpenPot] = useState(null);
 
@@ -97,6 +97,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
                   candidates={candidates}
                   onSave={onSaveTransfer}
                   onDelete={onDeleteTransfer}
+                  onToggleCashflow={onToggleCashflow}
                 />
               )}
             </div>

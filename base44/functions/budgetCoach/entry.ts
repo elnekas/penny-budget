@@ -72,8 +72,10 @@ Deno.serve(async (req) => {
           remaining -= d;
           m = nextM(m);
         }
-        const mILS = draw * rate;
-        if (draw > 0) { extSpend += mILS * pct; extReinvest += mILS * (1 - pct); }
+        // Transfers already visible (un-ignored) in the RiseUp cash flow are not re-added
+        const countedILS = transfers.filter((t) => t.income_id === e.id && t.counted_in_cashflow && (t.date || '').slice(0, 7) === nowMonth).reduce((s, t) => s + (t.amount_ils || 0), 0);
+        const mILS = Math.max(draw * rate - countedILS, 0);
+        if (mILS > 0) { extSpend += mILS * pct; extReinvest += mILS * (1 - pct); }
         return `- ${e.source_name}: one-time pot of $${e.amount_usd}, planned slice $${e.monthly_slice_usd}/mo @ rate ${rate} → this month ₪${Math.round(mILS)} (${e.spend_pct ?? 40}% spendable), ~$${Math.round(Math.max(remaining, 0))} left after this month. Actual NIS transfers logged by the user override the planned slice.`;
       }
       const monthlyILS = (e.amount_usd * rate) / (FREQ_DIV[e.frequency] || 1);
