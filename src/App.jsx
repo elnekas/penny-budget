@@ -5,11 +5,12 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import RiseUpDashboard from './pages/RiseUpDashboard';
 import RiseUpAnalytics from './pages/RiseUpAnalytics';
 import BudgetCockpit from './pages/BudgetCockpit';
+import FinanceShell from '@/components/finance/FinanceShell';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -47,26 +48,17 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={
+      <Route path="/" element={<Navigate to="/budget" replace />} />
+      <Route path="/classic" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />
         </LayoutWrapper>
       } />
-      <Route path="/riseup-dashboard" element={
-        <LayoutWrapper currentPageName="riseup-dashboard">
-          <RiseUpDashboard />
-        </LayoutWrapper>
-      } />
-      <Route path="/budget" element={
-        <LayoutWrapper currentPageName="budget">
-          <BudgetCockpit />
-        </LayoutWrapper>
-      } />
-      <Route path="/riseup-analytics" element={
-        <LayoutWrapper currentPageName="riseup-analytics">
-          <RiseUpAnalytics />
-        </LayoutWrapper>
-      } />
+      <Route element={<FinanceShell />}>
+        <Route path="/budget" element={<BudgetCockpit />} />
+        <Route path="/riseup-dashboard" element={<RiseUpDashboard />} />
+        <Route path="/riseup-analytics" element={<RiseUpAnalytics />} />
+      </Route>
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}

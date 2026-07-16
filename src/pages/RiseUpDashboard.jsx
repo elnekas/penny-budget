@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import moment from 'moment';
-import { ArrowLeft, Search, AlertTriangle, Loader2, PieChart, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Search, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
-import PennyDock from '@/components/budget/PennyDock';
 import { isInternal, fmt } from '@/components/riseup/riseupGroups';
 import RiseUpKpis from '@/components/riseup/RiseUpKpis';
 import RiseUpMonthlyChart from '@/components/riseup/RiseUpMonthlyChart';
@@ -29,6 +29,11 @@ export default function RiseUpDashboard() {
   const [flowFilter, setFlowFilter] = useState('all');
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortBy, setSortBy] = useState('amount_desc');
+
+  const { data: externals = [] } = useQuery({
+    queryKey: ['external-income'],
+    queryFn: () => base44.entities.ExternalIncome.list('-created_date', 100)
+  });
 
   useEffect(() => {
     if (snapshot && !selectedMonth) {
@@ -114,7 +119,7 @@ export default function RiseUpDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex items-center justify-center">
+      <div className="flex items-center justify-center py-32">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
@@ -122,7 +127,7 @@ export default function RiseUpDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex items-center justify-center p-4">
+      <div className="flex items-center justify-center py-32 p-4">
         <Card className="p-6 max-w-md w-full text-center border-0 shadow-sm">
           <p className="text-rose-600 font-semibold mb-1">Couldn't load RiseUp data</p>
           <p className="text-sm text-slate-500">{error.message}</p>
@@ -133,45 +138,26 @@ export default function RiseUpDashboard() {
 
   const listTotal = listTxs.filter(t => !t.ignored).reduce((s, t) => s + t.amt, 0);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link to="/" className="text-slate-400 hover:text-slate-700">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">RiseUp Insights</h1>
-            <p className="text-xs text-slate-400 flex items-center gap-1.5">
-              Live from RiseUp · updated {moment(snapshot.generated_at).format('D MMM, HH:mm')} · {transactions.length.toLocaleString()} transactions
-              <button
-                onClick={() => refresh()}
-                disabled={isRefreshing}
-                title="Refresh data"
-                className="text-slate-400 hover:text-emerald-600 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Link to="/budget">
-              <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-teal-700 border-teal-200 hover:bg-teal-50">
-                Budget Cockpit
-              </Button>
-            </Link>
-            <Link to="/riseup-analytics">
-              <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
-                <PieChart className="w-4 h-4" />
-                Analytics
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+  const extMonthly = externals
+    .filter(e => e.active !== false)
+    .reduce((s, e) => s + (e.amount_usd * (e.exchange_rate || 3.7)) / ({ monthly: 1, quarterly: 3, yearly: 12 }[e.frequency] || 1), 0);
+  const overseas = extMonthly * ((!selectedMonth || selectedMonth === 'all') ? (snapshot.months?.length || 1) : 1);
 
-      <main className="max-w-5xl mx-auto p-4 space-y-5 pb-16">
+  return (
+    <main className="max-w-5xl mx-auto p-4 space-y-5 pb-28">
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <span>
+          Live from RiseUp · updated {moment(snapshot.generated_at).format('D MMM, HH:mm')} · {transactions.length.toLocaleString()} transactions
+        </span>
+        <button
+          onClick={() => refresh()}
+          disabled={isRefreshing}
+          title="Refresh data"
+          className="text-slate-400 hover:text-emerald-600 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
         {/* Filters */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <select value={selectedMonth || 'all'} onChange={e => setSelectedMonth(e.target.value)} className={selectCls}>
@@ -199,7 +185,7 @@ export default function RiseUpDashboard() {
         </div>
 
         {/* KPIs */}
-        <RiseUpKpis income={income} expense={expense} />
+        <RiseUpKpis income={income} expense={expense} overseas={overseas} />
 
         {/* Duplicates alert */}
         {dupCount > 0 && (
@@ -298,9 +284,6 @@ export default function RiseUpDashboard() {
             </div>
           )}
         </Card>
-      </main>
-
-      <PennyDock />
-    </div>
+    </main>
   );
 }

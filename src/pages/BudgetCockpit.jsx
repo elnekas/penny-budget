@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useContext } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useBudgetData } from '@/components/budget/useBudgetData';
 import FreedomGauge from '@/components/budget/FreedomGauge';
 import CategoryGoals from '@/components/budget/CategoryGoals';
 import ExternalIncomeManager from '@/components/budget/ExternalIncomeManager';
 import FixedExpensePanel from '@/components/budget/FixedExpensePanel';
 import FocusStage from '@/components/budget/FocusStage';
-import PennyDock from '@/components/budget/PennyDock';
+import { PennyActionContext } from '@/components/finance/FinanceShell';
 
 const selectCls = "px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
@@ -19,6 +17,7 @@ export default function BudgetCockpit() {
     goals, saveExternal, deleteExternal, saveGoal, loadingBudget, error
   } = useBudgetData();
 
+  const { action, clear } = useContext(PennyActionContext);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [focus, setFocus] = useState(null);
 
@@ -36,19 +35,16 @@ export default function BudgetCockpit() {
     setFocus(a);
   };
 
-  // Apply any action Penny queued while on another page
+  // Apply UI actions Penny sends (from any tab)
   useEffect(() => {
-    if (loadingBudget) return;
-    const raw = sessionStorage.getItem('penny_pending_action');
-    if (raw) {
-      sessionStorage.removeItem('penny_pending_action');
-      handleUiAction(JSON.parse(raw));
-    }
-  }, [loadingBudget]);
+    if (!action || loadingBudget) return;
+    handleUiAction(action);
+    clear();
+  }, [action, loadingBudget]);
 
   if (loadingBudget) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex items-center justify-center">
+      <div className="flex items-center justify-center py-32">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
@@ -56,7 +52,7 @@ export default function BudgetCockpit() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="flex items-center justify-center py-32 px-4">
         <p className="text-rose-600 text-sm">Couldn't load your financial data: {error.message}</p>
       </div>
     );
@@ -65,60 +61,48 @@ export default function BudgetCockpit() {
   const monthLabel = snapshot?.month_labels?.[selectedMonth] || selectedMonth;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link to="/" className="text-slate-400 hover:text-slate-700"><ArrowLeft className="w-5 h-5" /></Link>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-slate-800">Budget Cockpit</h1>
-            <p className="text-xs text-slate-400">Your growth & goals command center</p>
-          </div>
-          <select value={selectedMonth || ''} onChange={e => setSelectedMonth(e.target.value)} className={selectCls}>
-            {months.map(m => <option key={m} value={m}>{snapshot?.month_labels?.[m] || m}</option>)}
-          </select>
-          <Link to="/riseup-dashboard">
-            <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
-              <TrendingUp className="w-4 h-4" /> Insights
-            </Button>
-          </Link>
+    <main className="max-w-5xl mx-auto p-4 space-y-5 pb-32">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-slate-800">Budget Cockpit</h1>
+          <p className="text-xs text-slate-400">Your growth & goals command center</p>
         </div>
-      </header>
+        <select value={selectedMonth || ''} onChange={e => setSelectedMonth(e.target.value)} className={selectCls}>
+          {months.map(m => <option key={m} value={m}>{snapshot?.month_labels?.[m] || m}</option>)}
+        </select>
+      </div>
 
-      <main className="max-w-5xl mx-auto p-4 space-y-5 pb-32">
-        <FocusStage
-          focus={focus}
-          monthly={monthly}
-          monthLabels={snapshot?.month_labels}
-          categoryAvg={categoryAvg}
-          onClose={() => setFocus(null)}
+      <FocusStage
+        focus={focus}
+        monthly={monthly}
+        monthLabels={snapshot?.month_labels}
+        categoryAvg={categoryAvg}
+        onClose={() => setFocus(null)}
+      />
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <FreedomGauge
+          stat={monthly[selectedMonth]}
+          externalSpend={externalSpendILS}
+          externalReinvest={externalReinvestILS}
+          label={monthLabel}
         />
+        <ExternalIncomeManager
+          externals={externals}
+          onSave={(p) => saveExternal.mutate(p)}
+          onDelete={(id) => deleteExternal.mutate(id)}
+        />
+      </div>
 
-        <div className="grid md:grid-cols-2 gap-5">
-          <FreedomGauge
-            stat={monthly[selectedMonth]}
-            externalSpend={externalSpendILS}
-            externalReinvest={externalReinvestILS}
-            label={monthLabel}
-          />
-          <ExternalIncomeManager
-            externals={externals}
-            onSave={(p) => saveExternal.mutate(p)}
-            onDelete={(id) => deleteExternal.mutate(id)}
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-5">
-          <CategoryGoals
-            categoryAvg={categoryAvg}
-            currentStat={monthly[selectedMonth]}
-            goals={goals}
-            onSaveGoal={(p) => saveGoal.mutate(p)}
-          />
-          <FixedExpensePanel transactions={transactions} month={selectedMonth} />
-        </div>
-      </main>
-
-      <PennyDock onUiAction={handleUiAction} />
-    </div>
+      <div className="grid md:grid-cols-2 gap-5">
+        <CategoryGoals
+          categoryAvg={categoryAvg}
+          currentStat={monthly[selectedMonth]}
+          goals={goals}
+          onSaveGoal={(p) => saveGoal.mutate(p)}
+        />
+        <FixedExpensePanel transactions={transactions} month={selectedMonth} />
+      </div>
+    </main>
   );
 }

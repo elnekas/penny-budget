@@ -94,14 +94,20 @@ Category goals:
 ${goalLines}
 
 RESPONSE FORMAT — always return ONLY valid JSON:
-{"reply": "your coaching message in markdown (concise, specific numbers, encouraging, 1-2 emojis max)", "ui_action": <action or null>}
+{"reply": "your coaching message in markdown (concise, specific numbers, encouraging, 1-2 emojis max)", "ui_action": <action or null>, "action": <action or null>}
 
 ui_action lets you show things on the dashboard. Use it whenever you discuss specific categories or months:
 - {"type":"focus_category","category":"<exact category name>","months":["YYYY-MM"]} — spotlight one category for one month (or 2-4 months side by side for comparison)
 - {"type":"compare_chart","category":"<exact category name>","months":["YYYY-MM",...]} — bar chart of a category across months
 - {"type":"show_gauge","month":"YYYY-MM"} — point at the Freedom Gauge for a month
 - {"type":"reset"} — clear the spotlight
-Use null for general strategy talk with no specific visual. Month codes and category names must match the data exactly.`;
+Use null for general strategy talk with no specific visual. Month codes and category names must match the data exactly.
+
+"action" lets you MAKE REAL CHANGES to the user's data. Use it ONLY when the user clearly asks for a change, and confirm exactly what you did in your reply:
+- {"type":"set_goal","category":"<exact category name from the data>","monthly_target":<number, ILS>} — set or update a monthly spending ceiling (e.g. "Cap dining at 1500")
+- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly","exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>} — add an overseas income source
+- {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
+If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
@@ -128,7 +134,43 @@ Use null for general strategy talk with no specific visual. Month codes and cate
       parsed = { reply: text || "I couldn't process that — try rephrasing?", ui_action: null };
     }
 
-    return Response.json({ reply: parsed.reply, ui_action: parsed.ui_action || null });
+    // Execute any data-changing action Penny decided on
+    let actionResult = null;
+    const act = parsed.action;
+    if (act?.type === 'set_goal' && act.category && act.monthly_target > 0) {
+      const existing = goals.find((g) => g.category === act.category);
+      if (existing) await base44.entities.CategoryGoal.update(existing.id, { monthly_target: act.monthly_target });
+      else await base44.entities.CategoryGoal.create({ category: act.category, monthly_target: act.monthly_target });
+      actionResult = `set_goal:${act.category}`;
+    } else if (act?.type === 'add_external_income' && act.source_name && act.amount_usd > 0) {
+      await base44.entities.ExternalIncome.create({
+        source_name: act.source_name,
+        amount_usd: act.amount_usd,
+        frequency: FREQ_DIV[act.frequency] ? act.frequency : 'monthly',
+        exchange_rate: act.exchange_rate || 3.7,
+        spend_pct: act.spend_pct ?? 40,
+        active: true
+      });
+      actionResult = `add_external_income:${act.source_name}`;
+    } else if (act?.type === 'recategorize_merchant' && act.merchant && act.category) {
+      const q = act.merchant.toLowerCase();
+      const txIds = (snapshot.transactions || [])
+        .filter((t) => (t.name || '').toLowerCase().includes(q))
+        .map((t) => t.id)
+        .slice(0, 500);
+      const updates = [];
+      const creates = [];
+      txIds.forEach((id) => {
+        const existing = ovMap.get(id);
+        if (existing) updates.push({ id: existing.id, category: act.category });
+        else creates.push({ tx_id: id, category: act.category });
+      });
+      if (updates.length) await base44.entities.RiseUpOverride.bulkUpdate(updates);
+      if (creates.length) await base44.entities.RiseUpOverride.bulkCreate(creates);
+      actionResult = `recategorize:${txIds.length}`;
+    }
+
+    return Response.json({ reply: parsed.reply, ui_action: parsed.ui_action || null, action_result: actionResult });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
