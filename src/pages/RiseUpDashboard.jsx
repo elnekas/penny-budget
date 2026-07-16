@@ -67,7 +67,7 @@ export default function RiseUpDashboard() {
     const allAccounts = selectedAccounts.length === 0;
     const realSel = selectedAccounts.filter(v => !v.startsWith('ext:'));
     const extSel = selectedAccounts.filter(v => v.startsWith('ext:')).map(v => v.slice(4));
-    const activeExternals = allAccounts ? externals : externals.filter(e => extSel.includes(e.id));
+    const activeExternals = externals.filter(e => extSel.includes(e.id));
 
     const accSet = new Set();
     const catSet = new Set();
