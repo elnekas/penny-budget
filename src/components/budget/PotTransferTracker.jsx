@@ -8,13 +8,15 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 
 export default function PotTransferTracker({ pot, transfers, candidates, onSave, onDelete, onToggleCashflow }) {
   const [manual, setManual] = useState(null);
+  const isBuf = pot.kind === 'buffer';
   const rate = pot.exchange_rate || 3.7;
   const mine = transfers.filter(t => t.income_id === pot.id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const linkedIds = new Set(transfers.map(t => t.tx_id).filter(Boolean));
   const options = (candidates || []).filter(t => !linkedIds.has(t.id)).sort((a, b) => new Date(b.td) - new Date(a.td));
-  const remaining = potRemainingUSD(pot, transfers);
-  const drawUSD = potDrawUSD(pot, currentMonth, transfers);
+  const drawnILS = mine.reduce((s, t) => s + (t.amount_ils || 0), 0);
   const actual = actualUSDForMonth(pot, currentMonth, transfers);
+  const remaining = isBuf ? pot.amount_usd - drawnILS / rate : potRemainingUSD(pot, transfers);
+  const drawUSD = isBuf ? (actual || 0) : potDrawUSD(pot, currentMonth, transfers);
 
   const linkTx = (id) => {
     const tx = candidates.find(t => t.id === id);
@@ -34,7 +36,7 @@ export default function PotTransferTracker({ pot, transfers, candidates, onSave,
     <div className="mt-1 ml-3 p-3 rounded-xl border border-teal-100 bg-teal-50/40 space-y-2 text-xs">
       <div className="flex items-center justify-between gap-2">
         <span className="text-slate-600">
-          This month: <b>{fmt(drawUSD * rate)}</b> (~${Math.round(drawUSD).toLocaleString()}) {actual != null ? '· actual transfer' : '· planned slice'}
+          This month: <b>{fmt(drawUSD * rate)}</b> (~${Math.round(drawUSD).toLocaleString()}) {actual != null ? '· actual transfer' : isBuf ? '· nothing drawn yet' : '· planned slice'}
         </span>
         <span className="text-slate-500 shrink-0">${Math.max(Math.round(remaining), 0).toLocaleString()} left of ${pot.amount_usd.toLocaleString()}</span>
       </div>
@@ -68,7 +70,11 @@ export default function PotTransferTracker({ pot, transfers, candidates, onSave,
         </div>
       ))}
       {mine.length === 0 && (
-        <p className="text-slate-400">No actual transfers logged yet — each month is assumed at the planned ${Number(pot.monthly_slice_usd).toLocaleString()} slice. Log the real NIS deposits to true-up the pot.</p>
+        <p className="text-slate-400">
+          {isBuf
+            ? 'No draws logged yet — this holding doesn\u2019t affect any charts or totals until you log a draw against it (can be done in several installments).'
+            : `No actual transfers logged yet — each month is assumed at the planned $${Number(pot.monthly_slice_usd).toLocaleString()} slice. Log the real NIS deposits to true-up the pot.`}
+        </p>
       )}
 
       <select className={`${inputCls} w-full`} value="" onChange={e => e.target.value && linkTx(e.target.value)}>

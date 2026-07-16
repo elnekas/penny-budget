@@ -41,11 +41,16 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
 
   const renderRow = (e) => {
     const buf = e.kind === 'buffer';
-    const pot = isPot(e);
-    const mILS = monthlyILSForMonth(e, currentMonth, transfers);
+    const pot = !buf && isPot(e);
+    const rate = e.exchange_rate || 3.7;
+    const mine = buf ? transfers.filter(t => t.income_id === e.id) : [];
+    const bufDrawnILS = mine.reduce((s, t) => s + (t.amount_ils || 0), 0);
+    const bufMonthILS = mine.filter(t => (t.date || '').slice(0, 7) === currentMonth).reduce((s, t) => s + (t.amount_ils || 0), 0);
+    const bufLeftUSD = e.amount_usd - bufDrawnILS / rate;
+    const mILS = buf ? 0 : monthlyILSForMonth(e, currentMonth, transfers);
     const remaining = pot ? potRemainingUSD(e, transfers) : 0;
-    const notStarted = !countsInMonth(e, currentMonth, transfers);
-    const notLanded = !notStarted && !hasLanded(e, currentMonth, transfers);
+    const notStarted = !buf && !countsInMonth(e, currentMonth, transfers);
+    const notLanded = !buf && !notStarted && !hasLanded(e, currentMonth, transfers);
     const suffix = e.frequency === 'one_time' ? (pot ? ' this mo' : '') : '/mo';
     return (
       <div key={e.id}>
@@ -53,7 +58,9 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
           <div className="flex-1 min-w-0">
             <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
             <p className="text-xs text-slate-400">
-              {pot
+              {buf
+                ? `$${e.amount_usd.toLocaleString()} holding · ${fmt(bufDrawnILS)} drawn · $${Math.max(Math.round(bufLeftUSD), 0).toLocaleString()} left`
+                : pot
                 ? `$${e.amount_usd.toLocaleString()} pot · slice $${Number(e.monthly_slice_usd).toLocaleString()}/mo · $${Math.max(Math.round(remaining), 0).toLocaleString()} left`
                 : `$${e.amount_usd.toLocaleString()} ${e.frequency === 'one_time' ? 'one-time' : e.frequency}`}
               {!buf && ` · ${e.spend_pct ?? 40}% to spend`}
@@ -72,7 +79,9 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
           </div>
           <div className="text-right text-xs">
             {buf ? (
-              <p className="font-semibold text-sky-600">{fmt(mILS)}{suffix} buffer draw</p>
+              bufMonthILS > 0
+                ? <p className="font-semibold text-sky-600">{fmt(bufMonthILS)} drawn this mo</p>
+                : <p className="text-slate-400">no draw this mo</p>
             ) : (
               <>
                 <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}{suffix} spend</p>
@@ -80,7 +89,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
               </>
             )}
           </div>
-          {pot && (
+          {(pot || buf) && (
             <button
               onClick={(ev) => { ev.stopPropagation(); setOpenPot(openPot === e.id ? null : e.id); }}
               className={`p-1 ${openPot === e.id ? 'text-teal-600' : 'text-slate-300 hover:text-teal-600'}`}
@@ -93,7 +102,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
-        {pot && openPot === e.id && (
+        {(pot || buf) && openPot === e.id && (
           <PotTransferTracker
             pot={e}
             transfers={transfers}
@@ -130,7 +139,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
           <Plus className="w-4 h-4" /> Add
         </Button>
       </div>
-      <p className="text-xs text-slate-400 mb-3">Savings in your local dollar account, converted to ₪ as needed to cover shortfalls — not counted as income</p>
+      <p className="text-xs text-slate-400 mb-3">Holdings that affect nothing until you log an actual draw (installment) against them via the ⇄ tracker</p>
 
       <div className="space-y-2">
         {buffers.map(renderRow)}
@@ -151,7 +160,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
               <option value="yearly">Yearly</option>
               <option value="one_time">One-time deposit</option>
             </select>
-            {form.frequency === 'one_time' && (
+            {form.frequency === 'one_time' && form.kind !== 'buffer' && (
               <div className="col-span-2">
                 <label className="text-[11px] text-slate-500">Monthly slice (USD, optional) — how much of this {form.kind === 'buffer' ? 'buffer to draw' : 'pot to budget as income'} each month until it runs out</label>
                 <input className={inputCls} type="number" placeholder="e.g. 5000" value={form.monthly_slice_usd} onChange={e => setForm({ ...form, monthly_slice_usd: e.target.value })} />

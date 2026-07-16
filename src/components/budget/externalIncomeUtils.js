@@ -100,7 +100,10 @@ export const externalMonthlyILSForMonth = (externals, month, transfers) =>
     .filter((e) => !isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
     .reduce((s, e) => s + monthlyILSForMonth(e, month, transfers), 0);
 
-export const bufferMonthlyILSForMonth = (externals, month, transfers) =>
-  (externals || [])
-    .filter((e) => isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
-    .reduce((s, e) => s + monthlyILSForMonth(e, month, transfers), 0);
+// Buffers are passive holdings — they only draw when an actual transfer/installment is logged against them
+export const bufferMonthlyILSForMonth = (externals, month, transfers) => {
+  const ids = new Set((externals || []).filter(isBuffer).map(e => e.id));
+  return (transfers || [])
+    .filter(t => ids.has(t.income_id) && (t.date || '').slice(0, 7) === month)
+    .reduce((s, t) => s + (t.amount_ils || 0), 0);
+};

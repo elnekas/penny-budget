@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
 import { isInternal } from '@/components/riseup/riseupGroups';
-import { countsInMonth, hasLanded, monthlyILSForMonth } from './externalIncomeUtils';
+import { countsInMonth, hasLanded, monthlyILSForMonth, bufferMonthlyILSForMonth, isBuffer } from './externalIncomeUtils';
 
 export function useBudgetData() {
   const qc = useQueryClient();
@@ -77,15 +77,15 @@ export function useBudgetData() {
   const externals = extQ.data || [];
   const transfers = transfersQ.data || [];
   const externalForMonth = (month) => {
-    let spend = 0, reinvest = 0, buffer = 0;
-    externals.filter(e => countsInMonth(e, month, transfers) && hasLanded(e, month, transfers)).forEach(e => {
+    let spend = 0, reinvest = 0;
+    externals.filter(e => !isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers)).forEach(e => {
       const mILS = monthlyILSForMonth(e, month, transfers);
-      // Savings buffer draws are not income — tracked separately
-      if (e.kind === 'buffer') { buffer += mILS; return; }
       const pct = (e.spend_pct ?? 40) / 100;
       spend += mILS * pct;
       reinvest += mILS * (1 - pct);
     });
+    // Buffer holdings only draw via actual logged transfers
+    const buffer = bufferMonthlyILSForMonth(externals, month, transfers);
     return { spend, reinvest, buffer };
   };
 
