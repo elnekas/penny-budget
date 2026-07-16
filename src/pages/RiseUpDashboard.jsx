@@ -210,9 +210,21 @@ export default function RiseUpDashboard() {
 
         {showInternalList && (
           <InternalExclusionsPanel
-            transactions={transactions}
+            transactions={transactions.filter(t => {
+              if (!isInternal(t.name)) return false;
+              if (selectedMonth && selectedMonth !== 'all' && t.m !== selectedMonth) return false;
+              if (selectedAccount !== 'all' && t.srcName !== selectedAccount) return false;
+              if (selectedType === 'fixed' && !t.fixed) return false;
+              if (selectedType === 'variable' && t.fixed) return false;
+              return true;
+            })}
             included={includedInternal}
             onToggle={(name) => setIncludedInternal(list => list.includes(name) ? list.filter(n => n !== name) : [...list, name])}
+            contextLabel={[
+              (!selectedMonth || selectedMonth === 'all') ? 'All months' : (snapshot.month_labels?.[selectedMonth] || selectedMonth),
+              selectedAccount !== 'all' ? selectedAccount : null,
+              selectedType !== 'all' ? selectedType : null
+            ].filter(Boolean).join(' · ')}
           />
         )}
 
