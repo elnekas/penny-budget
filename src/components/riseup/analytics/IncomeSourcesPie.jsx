@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { fmt, isInternal } from '../riseupGroups';
+import { fmt } from '../riseupGroups';
 import { PALETTE, totalsBy } from './analyticsUtils';
 import { monthlyILSForMonth, countsInMonth, hasLanded, isBuffer } from '@/components/budget/externalIncomeUtils';
 
@@ -14,7 +14,7 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
 
   const { allRows } = useMemo(() => {
     const txs = transactions.filter(t =>
-      t.inc && !t.ignored && !isInternal(t.name) && (month === 'all' || t.m === month)
+      t.inc && !t.ignored && !t.internal && (month === 'all' || t.m === month)
     );
     let rows = Object.entries(totalsBy(txs, t => t.name))
       .sort((a, b) => b[1] - a[1])

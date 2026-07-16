@@ -77,7 +77,7 @@ export default function RiseUpDashboard() {
   const { accounts, categories, monthTxs, listTxs, chartData, income, expense, overseas, dupCount } = useMemo(() => {
     if (!snapshot) return { accounts: [], categories: [], monthTxs: [], listTxs: [], chartData: [], income: 0, expense: 0, overseas: 0, dupCount: 0 };
 
-    const base = transactions.filter(t => !hideInternal || !isInternal(t.name) || includedInternal.includes(t.name));
+    const base = transactions.filter(t => !hideInternal || !t.internal);
 
     const allAccounts = selectedAccounts.length === 0;
     const realSel = selectedAccounts.filter(v => !v.startsWith('ext:'));

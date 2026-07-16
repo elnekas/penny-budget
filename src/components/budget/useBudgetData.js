@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
-import { isInternal } from '@/components/riseup/riseupGroups';
 import { countsInMonth, hasLanded, monthlyILSForMonth, bufferMonthlyILSForMonth, isBuffer } from './externalIncomeUtils';
 
 export function useBudgetData() {
@@ -61,7 +60,7 @@ export function useBudgetData() {
   const monthly = {};
   months.forEach(m => { monthly[m] = { income: 0, fixed: 0, variable: 0, planned: 0, categories: {} }; });
   riseup.transactions.forEach(t => {
-    if (t.ignored || isInternal(t.name)) return;
+    if (t.ignored || t.internal) return;
     const s = monthly[t.m];
     if (!s) return;
     if (t.inc) s.income += t.amt;

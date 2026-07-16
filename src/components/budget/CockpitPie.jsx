@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
-import { GROUPS, fmt, isInternal } from '@/components/riseup/riseupGroups';
+import { GROUPS, fmt } from '@/components/riseup/riseupGroups';
 import { GROUP_COLORS, PALETTE, totalsBy } from '@/components/riseup/analytics/analyticsUtils';
 
 const btnCls = (active) => `px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${active ? 'bg-emerald-100 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`;
@@ -10,7 +10,7 @@ export default function CockpitPie({ transactions, month, monthLabel }) {
   const [mode, setMode] = useState('group');
 
   const { data, total } = useMemo(() => {
-    const txs = transactions.filter(t => t.m === month && !t.inc && !t.ignored && !t.planned && !isInternal(t.name));
+    const txs = transactions.filter(t => t.m === month && !t.inc && !t.ignored && !t.planned && !t.internal);
     let rows;
     if (mode === 'group') {
       rows = Object.entries(totalsBy(txs, t => t.group))

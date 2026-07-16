@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Anchor } from 'lucide-react';
-import { fmt, isInternal } from '@/components/riseup/riseupGroups';
+import { fmt } from '@/components/riseup/riseupGroups';
 
 export default function FixedExpensePanel({ transactions, month }) {
   const rows = useMemo(() => {
     const byName = {};
     transactions.forEach(t => {
-      if (t.m !== month || t.inc || !t.fixed || t.ignored || isInternal(t.name)) return;
+      if (t.m !== month || t.inc || !t.fixed || t.ignored || t.internal) return;
       byName[t.name] = (byName[t.name] || 0) + t.amt;
     });
     return Object.entries(byName).sort((a, b) => b[1] - a[1]);

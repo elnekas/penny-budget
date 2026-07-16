@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { groupForCategory } from './riseupGroups';
+import { groupForCategory, isInternal } from './riseupGroups';
 
 export const RISEUP_DATA_URL = 'https://golem-ab6b7215.base44.app/functions/financeSnapshot';
 
@@ -31,6 +31,11 @@ export function useRiseUpData() {
   const groupOverridesQ = useQuery({
     queryKey: ['riseup-cat-groups'],
     queryFn: () => base44.entities.RiseUpCategoryGroup.list('-created_date', 500)
+  });
+
+  const inclusionsQ = useQuery({
+    queryKey: ['internal-inclusions'],
+    queryFn: () => base44.entities.InternalInclusion.list('-created_date', 500)
   });
 
   const saveCategoryGroup = useMutation({
@@ -99,6 +104,7 @@ export function useRiseUpData() {
     (groupOverridesQ.data || []).forEach(g => {
       if (!groupMap.has(g.category_name)) groupMap.set(g.category_name, g.group);
     });
+    const includedSet = new Set((inclusionsQ.data || []).map(r => r.name));
     transactions = snapshot.transactions.map(t => {
       const ov = ovMap.get(t.id);
       let category = ov?.category || t.catName || 'General';
@@ -107,6 +113,8 @@ export function useRiseUpData() {
         ...t,
         category,
         group: t.inc ? 'income' : (groupMap.get(category) || groupForCategory(category, t.inc)),
+        // Excluded as an internal transfer/settlement everywhere — unless explicitly included back
+        internal: isInternal(t.name) && !includedSet.has(t.name),
         ignored: !!ov?.ignored,
         planned: !!ov?.planned,
         hasOverride: !!ov?.category,
@@ -118,7 +126,7 @@ export function useRiseUpData() {
   return {
     snapshot,
     transactions,
-    loading: snapshotQ.isLoading || overridesQ.isLoading || renamesQ.isLoading,
+    loading: snapshotQ.isLoading || overridesQ.isLoading || renamesQ.isLoading || inclusionsQ.isLoading,
     error: snapshotQ.error,
     saveOverride,
     saveRename,

@@ -1,5 +1,4 @@
 import moment from 'moment';
-import { isInternal } from '../riseupGroups';
 
 // Hex colors matching the group Tailwind shades (recharts needs raw values)
 export const GROUP_COLORS = {
@@ -11,7 +10,7 @@ export const GROUP_COLORS = {
 export const PALETTE = ['#3b82f6', '#fb7185', '#f59e0b', '#10b981', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#84cc16', '#64748b', '#eab308', '#6366f1'];
 
 export const cleanExpenses = (transactions) =>
-  transactions.filter(t => !t.inc && !t.ignored && !isInternal(t.name));
+  transactions.filter(t => !t.inc && !t.ignored && !t.internal);
 
 export const monthShort = (m) => moment(m, 'YYYY-MM').format('MMM YY');
 

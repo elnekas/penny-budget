@@ -1,10 +1,9 @@
-import { isInternal } from '@/components/riseup/riseupGroups';
 import { isBuffer, countsInMonth, monthlyILSForMonth } from '../externalIncomeUtils';
 
 // Last N complete months (excludes the current partial month)
 export const lastFullMonths = (months, n = 6) => months.slice(0, -1).slice(-n);
 
-const countable = (t) => !t.inc && !t.ignored && !t.planned && !isInternal(t.name);
+const countable = (t) => !t.inc && !t.ignored && !t.planned && !t.internal;
 
 // Average monthly spend per group over the given months (fixed + variable)
 export function groupAverages(transactions, avgMonths, { fixedOnly = false } = {}) {
@@ -40,7 +39,7 @@ export function incomeSourceOptions(transactions, avgMonths, externals, transfer
   const set = new Set(avgMonths);
   const div = avgMonths.length || 1;
   const localTotal = transactions
-    .filter(t => set.has(t.m) && t.inc && !t.ignored && !isInternal(t.name))
+    .filter(t => set.has(t.m) && t.inc && !t.ignored && !t.internal)
     .reduce((s, t) => s + t.amt, 0);
   const options = [{ id: 'local', label: '🏦 Local bank income', avg: Math.round(localTotal / div) }];
   (externals || []).filter(e => !isBuffer(e)).forEach(e => {
@@ -54,7 +53,7 @@ export function incomeSourceOptions(transactions, avgMonths, externals, transfer
 // What income actually arrived in one specific month, per source
 export function actualIncomeOptions(transactions, month, externals, transfers) {
   const localTotal = transactions
-    .filter(t => t.m === month && t.inc && !t.ignored && !isInternal(t.name))
+    .filter(t => t.m === month && t.inc && !t.ignored && !t.internal)
     .reduce((s, t) => s + t.amt, 0);
   const options = [];
   if (localTotal > 0) options.push({ id: 'local', label: '🏦 Local bank income', avg: Math.round(localTotal) });
