@@ -35,6 +35,10 @@ export default function RiseUpDashboard() {
     queryFn: () => base44.entities.ExternalIncome.list('-created_date', 100)
   });
 
+  const extMonthly = (externals || [])
+    .filter(e => e.active !== false)
+    .reduce((s, e) => s + (e.amount_usd * (e.exchange_rate || 3.7)) / ({ monthly: 1, quarterly: 3, yearly: 12 }[e.frequency] || 1), 0);
+
   useEffect(() => {
     if (snapshot && !selectedMonth) {
       const months = snapshot.months || [];
@@ -65,7 +69,7 @@ export default function RiseUpDashboard() {
         if (t.m !== m || t.ignored) return;
         if (t.inc) inc += t.amt; else exp += t.amt;
       });
-      return { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc), Expense: Math.round(exp) };
+      return { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : extMonthly)), Expense: Math.round(exp) };
     });
 
     const mTxs = base.filter(t => {
@@ -115,7 +119,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, extMonthly]);
 
   if (loading) {
     return (
@@ -138,9 +142,6 @@ export default function RiseUpDashboard() {
 
   const listTotal = listTxs.filter(t => !t.ignored).reduce((s, t) => s + t.amt, 0);
 
-  const extMonthly = externals
-    .filter(e => e.active !== false)
-    .reduce((s, e) => s + (e.amount_usd * (e.exchange_rate || 3.7)) / ({ monthly: 1, quarterly: 3, yearly: 12 }[e.frequency] || 1), 0);
   const overseas = extMonthly * ((!selectedMonth || selectedMonth === 'all') ? (snapshot.months?.length || 1) : 1);
 
   return (
