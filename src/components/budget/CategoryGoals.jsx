@@ -24,12 +24,12 @@ export default function CategoryGoals({ categoryAvg, currentStat, goals, onSaveG
             <div key={cat}>
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="font-medium text-slate-700">{g?.emoji} {cat}</span>
-                <span className={over ? 'text-rose-500 font-semibold' : 'text-slate-500'}>
+                <span className={over ? 'text-[#fb7185] font-semibold' : 'text-slate-500'}>
                   {fmt(spent)} / {fmt(target)} <span className="text-slate-300">· avg {fmt(avg)}</span>
                 </span>
               </div>
               <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-1.5">
-                <div className={`h-full rounded-full ${over ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
+                <div className={`h-full rounded-full ${over ? 'bg-[#fb7185]' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
               </div>
               <Slider
                 defaultValue={[target]}
