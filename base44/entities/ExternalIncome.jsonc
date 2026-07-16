@@ -35,6 +35,11 @@
       "format": "date",
       "description": "Date this income source began \u2014 it is excluded from all accounting before this month"
     },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this income source ends \u2014 it is excluded from all accounting after this month"
+    },
     "deposit_day": {
       "type": "number",
       "description": "Day of the month (1-31) the money lands in the account"

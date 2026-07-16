@@ -6,7 +6,7 @@ import { fmt } from '@/components/riseup/riseupGroups';
 import { monthlyILS, countsInMonth, hasLanded } from './externalIncomeUtils';
 
 const inputCls = "w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40";
-const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', deposit_day: '' };
+const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', end_date: '', deposit_day: '' };
 const currentMonth = new Date().toISOString().slice(0, 7);
 
 export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
@@ -23,6 +23,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
       active: true
     };
     if (form.start_date) data.start_date = form.start_date;
+    if (form.end_date) data.end_date = form.end_date;
     if (form.deposit_day) data.deposit_day = Number(form.deposit_day);
     onSave({ id: form.id, data });
     setForm(null);
@@ -44,15 +45,16 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
           const notStarted = !countsInMonth(e, currentMonth);
           const notLanded = !notStarted && !hasLanded(e, currentMonth);
           return (
-            <div key={e.id} className={`flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100 ${notStarted ? 'opacity-60' : ''}`} onClick={() => setForm({ ...e, start_date: e.start_date || '', deposit_day: e.deposit_day || '' })}>
+            <div key={e.id} className={`flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100 ${notStarted ? 'opacity-60' : ''}`} onClick={() => setForm({ ...e, start_date: e.start_date || '', end_date: e.end_date || '', deposit_day: e.deposit_day || '' })}>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
                 <p className="text-xs text-slate-400">
                   ${e.amount_usd.toLocaleString()} {e.frequency} · {e.spend_pct ?? 40}% to spend
                   {e.start_date && ` · from ${e.start_date.slice(0, 7)}`}
+                  {e.end_date && ` · until ${e.end_date.slice(0, 7)}`}
                   {e.deposit_day && ` · lands on the ${e.deposit_day}th`}
                 </p>
-                {notStarted && <p className="text-[11px] text-amber-600 font-medium">Not started yet — excluded from totals</p>}
+                {notStarted && <p className="text-[11px] text-amber-600 font-medium">{e.end_date && e.end_date.slice(0, 7) < currentMonth ? 'Ended — excluded from totals' : 'Not started yet — excluded from totals'}</p>}
                 {notLanded && <p className="text-[11px] text-slate-400">Hasn't landed yet this month</p>}
               </div>
               <div className="text-right text-xs">
@@ -85,6 +87,10 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
             <div>
               <label className="text-[11px] text-slate-500">Started on</label>
               <input className={inputCls} type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-[11px] text-slate-500">Ends on (optional)</label>
+              <input className={inputCls} type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
             </div>
             <div>
               <label className="text-[11px] text-slate-500">Lands on day of month</label>

@@ -8,6 +8,7 @@ export function countsInMonth(e, month) {
   if (e.active === false) return false;
   if (!month) return true;
   if (e.start_date && month < e.start_date.slice(0, 7)) return false;
+  if (e.end_date && month > e.end_date.slice(0, 7)) return false;
   return true;
 }
 
