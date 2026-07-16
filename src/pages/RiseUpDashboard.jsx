@@ -154,12 +154,19 @@ export default function RiseUpDashboard() {
               </button>
             </p>
           </div>
-          <Link to="/riseup-analytics" className="ml-auto">
-            <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
-              <PieChart className="w-4 h-4" />
-              Analytics
-            </Button>
-          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link to="/budget">
+              <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-teal-700 border-teal-200 hover:bg-teal-50">
+                Budget Cockpit
+              </Button>
+            </Link>
+            <Link to="/riseup-analytics">
+              <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+                <PieChart className="w-4 h-4" />
+                Analytics
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 

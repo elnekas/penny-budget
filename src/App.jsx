@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import RiseUpDashboard from './pages/RiseUpDashboard';
 import RiseUpAnalytics from './pages/RiseUpAnalytics';
+import BudgetCockpit from './pages/BudgetCockpit';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -54,6 +55,11 @@ const AuthenticatedApp = () => {
       <Route path="/riseup-dashboard" element={
         <LayoutWrapper currentPageName="riseup-dashboard">
           <RiseUpDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/budget" element={
+        <LayoutWrapper currentPageName="budget">
+          <BudgetCockpit />
         </LayoutWrapper>
       } />
       <Route path="/riseup-analytics" element={

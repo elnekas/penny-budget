@@ -206,6 +206,11 @@ export default function Home() {
                   <TrendingUp className="w-5 h-5" />
                 </Button>
               </Link>
+              <Link to="/budget">
+                <Button variant="ghost" size="icon" className="text-emerald-600" title="Budget Cockpit">
+                  <Sparkles className="w-5 h-5" />
+                </Button>
+              </Link>
               <WhatsAppButton />
             </div>
           </div>
@@ -243,6 +248,10 @@ export default function Home() {
           <Link to="/riseup-dashboard" className="flex flex-col items-center gap-1 py-2 px-4 rounded-xl text-slate-400">
             <TrendingUp className="w-5 h-5" />
             <span className="text-xs font-medium">RiseUp</span>
+          </Link>
+          <Link to="/budget" className="flex flex-col items-center gap-1 py-2 px-4 rounded-xl text-emerald-600">
+            <Sparkles className="w-5 h-5" />
+            <span className="text-xs font-medium">Budget</span>
           </Link>
           <WhatsAppButton className="flex flex-col items-center gap-1 py-2 px-4" />
         </div>

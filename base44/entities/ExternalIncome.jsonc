@@ -1,0 +1,48 @@
+{
+  "name": "ExternalIncome",
+  "type": "object",
+  "properties": {
+    "source_name": {
+      "type": "string",
+      "description": "Name of the income source (e.g. US Rental Property, Dividend Portfolio)"
+    },
+    "amount_usd": {
+      "type": "number",
+      "description": "Amount received in USD per frequency period"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "quarterly",
+        "yearly"
+      ],
+      "default": "monthly",
+      "description": "How often this income arrives"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "default": 3.7,
+      "description": "USD to ILS conversion rate to use"
+    },
+    "spend_pct": {
+      "type": "number",
+      "default": 40,
+      "description": "Percent of this income allocated to monthly spending (the rest is reinvested)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include this source in calculations"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    }
+  },
+  "required": [
+    "source_name",
+    "amount_usd",
+    "frequency"
+  ]
+}
