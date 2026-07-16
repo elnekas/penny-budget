@@ -9,6 +9,7 @@ import { cleanExpenses } from '@/components/riseup/analytics/analyticsUtils';
 import SpendingPie from '@/components/riseup/analytics/SpendingPie';
 import MonthCompare from '@/components/riseup/analytics/MonthCompare';
 import CategoryCompare from '@/components/riseup/analytics/CategoryCompare';
+import PennyDock from '@/components/budget/PennyDock';
 
 export default function RiseUpAnalytics() {
   const { snapshot, transactions, loading, error } = useRiseUpData();
@@ -91,6 +92,8 @@ export default function RiseUpAnalytics() {
         </Card>
         </>)}
       </main>
+
+      <PennyDock />
     </div>
   );
 }

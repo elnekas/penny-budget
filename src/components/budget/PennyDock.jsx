@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Maximize2, Minimize2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,11 +8,17 @@ import PennyMessages from './PennyMessages';
 
 const GREETING = { role: 'assistant', content: "Hi! I'm Penny, your budget coach 💚 Ask me anything — like *\"how much did we spend on clothing in October?\"* or *\"compare dining out over the last few months\"* — and I'll bring it up on screen for you." };
 
+// Keep the conversation alive as the user moves between pages
+let savedMessages = null;
+
 export default function PennyDock({ onUiAction }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('bubble'); // bubble | panel | full
-  const [messages, setMessages] = useState([GREETING]);
+  const [messages, setMessages] = useState(savedMessages || [GREETING]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+
+  useEffect(() => { savedMessages = messages; }, [messages]);
 
   const send = async () => {
     const text = input.trim();
@@ -23,8 +30,16 @@ export default function PennyDock({ onUiAction }) {
     try {
       const res = await base44.functions.invoke('budgetCoach', { messages: next.slice(-14) });
       setMessages([...next, { role: 'assistant', content: res.data.reply }]);
-      if (res.data.ui_action && mode === 'full') setMode('panel');
-      if (res.data.ui_action) onUiAction(res.data.ui_action);
+      if (res.data.ui_action) {
+        if (mode === 'full') setMode('panel');
+        if (onUiAction) {
+          onUiAction(res.data.ui_action);
+        } else {
+          // Not on the Cockpit — stash the action and take the user there
+          sessionStorage.setItem('penny_pending_action', JSON.stringify(res.data.ui_action));
+          navigate('/budget');
+        }
+      }
     } catch (e) {
       setMessages([...next, { role: 'assistant', content: "Sorry, I hit a snag — please try again 🙏" }]);
     }

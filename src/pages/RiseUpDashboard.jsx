@@ -5,6 +5,7 @@ import { ArrowLeft, Search, AlertTriangle, Loader2, PieChart, RefreshCw } from '
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
+import PennyDock from '@/components/budget/PennyDock';
 import { isInternal, fmt } from '@/components/riseup/riseupGroups';
 import RiseUpKpis from '@/components/riseup/RiseUpKpis';
 import RiseUpMonthlyChart from '@/components/riseup/RiseUpMonthlyChart';
@@ -298,6 +299,8 @@ export default function RiseUpDashboard() {
           )}
         </Card>
       </main>
+
+      <PennyDock />
     </div>
   );
 }

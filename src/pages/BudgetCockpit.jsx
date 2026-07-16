@@ -36,6 +36,16 @@ export default function BudgetCockpit() {
     setFocus(a);
   };
 
+  // Apply any action Penny queued while on another page
+  useEffect(() => {
+    if (loadingBudget) return;
+    const raw = sessionStorage.getItem('penny_pending_action');
+    if (raw) {
+      sessionStorage.removeItem('penny_pending_action');
+      handleUiAction(JSON.parse(raw));
+    }
+  }, [loadingBudget]);
+
   if (loadingBudget) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex items-center justify-center">
