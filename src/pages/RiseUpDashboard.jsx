@@ -14,6 +14,7 @@ import GroupBreakdown from '@/components/riseup/GroupBreakdown';
 import RiseUpTransactionRow from '@/components/riseup/RiseUpTransactionRow';
 import RiseUpListControls from '@/components/riseup/RiseUpListControls';
 import InternalExclusionsPanel from '@/components/riseup/InternalExclusionsPanel';
+import AccountMultiSelect from '@/components/riseup/AccountMultiSelect';
 
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
@@ -21,7 +22,7 @@ export default function RiseUpDashboard() {
   const { snapshot, transactions, loading, error, saveOverride, saveRename, saveCategoryForName, saveCategoryGroup, refresh, isRefreshing } = useRiseUpData();
 
   const [selectedMonth, setSelectedMonth] = useState(null);
-  const [selectedAccount, setSelectedAccount] = useState('all');
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
   const [activeGroup, setActiveGroup] = useState(null);
   const [hideInternal, setHideInternal] = useState(true);
@@ -53,10 +54,20 @@ export default function RiseUpDashboard() {
     }
   }, [snapshot, selectedMonth]);
 
-  const { accounts, categories, monthTxs, listTxs, chartData, income, expense, dupCount } = useMemo(() => {
-    if (!snapshot) return { accounts: [], categories: [], monthTxs: [], listTxs: [], chartData: [], income: 0, expense: 0, dupCount: 0 };
+  const overseasSources = useMemo(
+    () => externals.filter(e => e.active !== false && e.kind !== 'buffer'),
+    [externals]
+  );
+
+  const { accounts, categories, monthTxs, listTxs, chartData, income, expense, overseas, dupCount } = useMemo(() => {
+    if (!snapshot) return { accounts: [], categories: [], monthTxs: [], listTxs: [], chartData: [], income: 0, expense: 0, overseas: 0, dupCount: 0 };
 
     const base = transactions.filter(t => !hideInternal || !isInternal(t.name) || includedInternal.includes(t.name));
+
+    const allAccounts = selectedAccounts.length === 0;
+    const realSel = selectedAccounts.filter(v => !v.startsWith('ext:'));
+    const extSel = selectedAccounts.filter(v => v.startsWith('ext:')).map(v => v.slice(4));
+    const activeExternals = allAccounts ? externals : externals.filter(e => extSel.includes(e.id));
 
     const accSet = new Set();
     const catSet = new Set();
@@ -65,9 +76,11 @@ export default function RiseUpDashboard() {
       catSet.add(t.category);
     });
 
-    const chartBase = selectedCategories.length
-      ? base.filter(t => selectedCategories.includes(t.category))
-      : base;
+    const chartBase = base.filter(t => {
+      if (!allAccounts && !realSel.includes(t.srcName)) return false;
+      if (selectedCategories.length && !selectedCategories.includes(t.category)) return false;
+      return true;
+    });
 
     const cData = snapshot.months.map((m, idx) => {
       const isLatest = idx === snapshot.months.length - 1;
@@ -78,7 +91,7 @@ export default function RiseUpDashboard() {
         else if (showPlanned && t.planned) planned += t.amt; // toggle on: deduct one-offs from the month's expense
         else exp += t.amt;
       });
-      const row = { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m, potTransfers))), Expense: Math.round(exp) };
+      const row = { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(activeExternals, m, potTransfers))), Expense: Math.round(exp) };
       if (showBuffer) row['Buffer draw'] = Math.round(bufferMonthlyILSForMonth(externals, m, potTransfers));
       if (showPlanned) row['Planned'] = Math.round(planned);
       return row;
@@ -86,11 +99,15 @@ export default function RiseUpDashboard() {
 
     const mTxs = base.filter(t => {
       if (selectedMonth && selectedMonth !== 'all' && t.m !== selectedMonth) return false;
-      if (selectedAccount !== 'all' && t.srcName !== selectedAccount) return false;
+      if (!allAccounts && !realSel.includes(t.srcName)) return false;
       if (selectedType === 'fixed' && !t.fixed) return false;
       if (selectedType === 'variable' && t.fixed) return false;
       return true;
     });
+
+    const ovs = (!selectedMonth || selectedMonth === 'all')
+      ? (snapshot.months || []).reduce((s, m) => s + externalMonthlyILSForMonth(activeExternals, m, potTransfers), 0)
+      : externalMonthlyILSForMonth(activeExternals, selectedMonth, potTransfers);
 
     let inc = 0, exp = 0;
     mTxs.forEach(t => {
@@ -130,9 +147,10 @@ export default function RiseUpDashboard() {
       chartData: cData,
       income: inc,
       expense: exp,
+      overseas: ovs,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, includedInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers, showBuffer, showPlanned]);
+  }, [snapshot, transactions, selectedMonth, selectedAccounts, selectedType, activeGroup, hideInternal, includedInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers, showBuffer, showPlanned]);
 
   if (loading) {
     return (
@@ -155,10 +173,6 @@ export default function RiseUpDashboard() {
 
   const listTotal = listTxs.filter(t => !t.ignored).reduce((s, t) => s + t.amt, 0);
 
-  const overseas = (!selectedMonth || selectedMonth === 'all')
-    ? (snapshot.months || []).reduce((s, m) => s + externalMonthlyILSForMonth(externals, m, potTransfers), 0)
-    : externalMonthlyILSForMonth(externals, selectedMonth, potTransfers);
-
   return (
     <main className="max-w-5xl mx-auto p-4 space-y-5 pb-28">
       <div className="flex items-center justify-between text-xs text-slate-400">
@@ -180,10 +194,12 @@ export default function RiseUpDashboard() {
             <option value="all">All Months</option>
             {snapshot.months.map(m => <option key={m} value={m}>{snapshot.month_labels?.[m] || m}</option>)}
           </select>
-          <select value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} className={selectCls}>
-            <option value="all">All Accounts</option>
-            {accounts.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
+          <AccountMultiSelect
+            accounts={accounts}
+            overseasSources={overseasSources}
+            selected={selectedAccounts}
+            onChange={setSelectedAccounts}
+          />
           <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className={selectCls}>
             <option value="all">Fixed + Variable</option>
             <option value="fixed">Fixed / Recurring</option>
@@ -213,7 +229,8 @@ export default function RiseUpDashboard() {
             transactions={transactions.filter(t => {
               if (!isInternal(t.name)) return false;
               if (selectedMonth && selectedMonth !== 'all' && t.m !== selectedMonth) return false;
-              if (selectedAccount !== 'all' && t.srcName !== selectedAccount) return false;
+              const realSel = selectedAccounts.filter(v => !v.startsWith('ext:'));
+              if (selectedAccounts.length && !realSel.includes(t.srcName)) return false;
               if (selectedType === 'fixed' && !t.fixed) return false;
               if (selectedType === 'variable' && t.fixed) return false;
               return true;
@@ -222,7 +239,7 @@ export default function RiseUpDashboard() {
             onToggle={(name) => setIncludedInternal(list => list.includes(name) ? list.filter(n => n !== name) : [...list, name])}
             contextLabel={[
               (!selectedMonth || selectedMonth === 'all') ? 'All months' : (snapshot.month_labels?.[selectedMonth] || selectedMonth),
-              selectedAccount !== 'all' ? selectedAccount : null,
+              selectedAccounts.length ? `${selectedAccounts.length} account${selectedAccounts.length > 1 ? 's' : ''}` : null,
               selectedType !== 'all' ? selectedType : null
             ].filter(Boolean).join(' · ')}
           />
