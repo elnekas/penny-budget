@@ -3,27 +3,28 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Globe } from 'lucide-react';
 import { fmt } from '@/components/riseup/riseupGroups';
+import { monthlyILS, countsInMonth, hasLanded } from './externalIncomeUtils';
 
 const inputCls = "w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40";
-const FREQ_DIV = { monthly: 1, quarterly: 3, yearly: 12 };
-const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40 };
+const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', deposit_day: '' };
+const currentMonth = new Date().toISOString().slice(0, 7);
 
 export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
   const [form, setForm] = useState(null);
 
   const submit = () => {
     if (!form.source_name || !form.amount_usd) return;
-    onSave({
-      id: form.id,
-      data: {
-        source_name: form.source_name,
-        amount_usd: Number(form.amount_usd),
-        frequency: form.frequency,
-        exchange_rate: Number(form.exchange_rate) || 3.7,
-        spend_pct: Number(form.spend_pct) || 0,
-        active: true
-      }
-    });
+    const data = {
+      source_name: form.source_name,
+      amount_usd: Number(form.amount_usd),
+      frequency: form.frequency,
+      exchange_rate: Number(form.exchange_rate) || 3.7,
+      spend_pct: Number(form.spend_pct) || 0,
+      active: true
+    };
+    if (form.start_date) data.start_date = form.start_date;
+    if (form.deposit_day) data.deposit_day = Number(form.deposit_day);
+    onSave({ id: form.id, data });
     setForm(null);
   };
 
@@ -39,16 +40,24 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
 
       <div className="space-y-2">
         {externals.map(e => {
-          const monthlyILS = (e.amount_usd * (e.exchange_rate || 3.7)) / (FREQ_DIV[e.frequency] || 1);
+          const mILS = monthlyILS(e);
+          const notStarted = !countsInMonth(e, currentMonth);
+          const notLanded = !notStarted && !hasLanded(e, currentMonth);
           return (
-            <div key={e.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100" onClick={() => setForm({ ...e })}>
+            <div key={e.id} className={`flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100 ${notStarted ? 'opacity-60' : ''}`} onClick={() => setForm({ ...e, start_date: e.start_date || '', deposit_day: e.deposit_day || '' })}>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
-                <p className="text-xs text-slate-400">${e.amount_usd.toLocaleString()} {e.frequency} · {e.spend_pct ?? 40}% to spend</p>
+                <p className="text-xs text-slate-400">
+                  ${e.amount_usd.toLocaleString()} {e.frequency} · {e.spend_pct ?? 40}% to spend
+                  {e.start_date && ` · from ${e.start_date.slice(0, 7)}`}
+                  {e.deposit_day && ` · lands on the ${e.deposit_day}th`}
+                </p>
+                {notStarted && <p className="text-[11px] text-amber-600 font-medium">Not started yet — excluded from totals</p>}
+                {notLanded && <p className="text-[11px] text-slate-400">Hasn't landed yet this month</p>}
               </div>
               <div className="text-right text-xs">
-                <p className="font-semibold text-emerald-600">{fmt(monthlyILS * ((e.spend_pct ?? 40) / 100))}/mo spend</p>
-                <p className="text-teal-500">{fmt(monthlyILS * (1 - (e.spend_pct ?? 40) / 100))}/mo reinvest</p>
+                <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}/mo spend</p>
+                <p className="text-teal-500">{fmt(mILS * (1 - (e.spend_pct ?? 40) / 100))}/mo reinvest</p>
               </div>
               <button onClick={(ev) => { ev.stopPropagation(); onDelete(e.id); }} className="text-slate-300 hover:text-rose-500 p-1">
                 <Trash2 className="w-4 h-4" />
@@ -73,6 +82,14 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
             </select>
             <input className={inputCls} type="number" step="0.01" placeholder="USD→ILS rate" value={form.exchange_rate} onChange={e => setForm({ ...form, exchange_rate: e.target.value })} />
             <input className={inputCls} type="number" min="0" max="100" placeholder="% to spend" value={form.spend_pct} onChange={e => setForm({ ...form, spend_pct: e.target.value })} />
+            <div>
+              <label className="text-[11px] text-slate-500">Started on</label>
+              <input className={inputCls} type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-[11px] text-slate-500">Lands on day of month</label>
+              <input className={inputCls} type="number" min="1" max="31" placeholder="e.g. 10" value={form.deposit_day} onChange={e => setForm({ ...form, deposit_day: e.target.value })} />
+            </div>
           </div>
           <div className="flex gap-2">
             <Button size="sm" className="flex-1 bg-teal-600 hover:bg-teal-700" onClick={submit}>{form.id ? 'Update' : 'Add'} source</Button>

@@ -13,7 +13,7 @@ const selectCls = "px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm
 export default function BudgetCockpit() {
   const {
     snapshot, transactions, monthly, months, categoryAvg,
-    externals, externalSpendILS, externalReinvestILS,
+    externals, externalForMonth,
     goals, saveExternal, deleteExternal, saveGoal, loadingBudget, error
   } = useBudgetData();
 
@@ -83,8 +83,8 @@ export default function BudgetCockpit() {
       <div className="grid md:grid-cols-2 gap-5">
         <FreedomGauge
           stat={monthly[selectedMonth]}
-          externalSpend={externalSpendILS}
-          externalReinvest={externalReinvestILS}
+          externalSpend={externalForMonth(selectedMonth).spend}
+          externalReinvest={externalForMonth(selectedMonth).reinvest}
           label={monthLabel}
         />
         <ExternalIncomeManager

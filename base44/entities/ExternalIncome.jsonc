@@ -30,6 +30,15 @@
       "default": 40,
       "description": "Percent of this income allocated to monthly spending (the rest is reinvested)"
     },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this income source began \u2014 it is excluded from all accounting before this month"
+    },
+    "deposit_day": {
+      "type": "number",
+      "description": "Day of the month (1-31) the money lands in the account"
+    },
     "active": {
       "type": "boolean",
       "default": true,

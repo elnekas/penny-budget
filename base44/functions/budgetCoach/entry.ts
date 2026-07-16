@@ -52,12 +52,16 @@ Deno.serve(async (req) => {
 
     // External USD income
     let extSpend = 0, extReinvest = 0;
+    const nowMonth = new Date().toISOString().slice(0, 7);
     const extLines = externals.filter((e) => e.active !== false).map((e) => {
       const monthlyILS = (e.amount_usd * (e.exchange_rate || 3.7)) / (FREQ_DIV[e.frequency] || 1);
       const pct = (e.spend_pct ?? 40) / 100;
-      extSpend += monthlyILS * pct;
-      extReinvest += monthlyILS * (1 - pct);
-      return `- ${e.source_name}: $${e.amount_usd} ${e.frequency} @ rate ${e.exchange_rate || 3.7} → ₪${Math.round(monthlyILS)}/mo (${e.spend_pct ?? 40}% spendable)`;
+      const started = !e.start_date || e.start_date.slice(0, 7) <= nowMonth;
+      if (started) {
+        extSpend += monthlyILS * pct;
+        extReinvest += monthlyILS * (1 - pct);
+      }
+      return `- ${e.source_name}: $${e.amount_usd} ${e.frequency} @ rate ${e.exchange_rate || 3.7} → ₪${Math.round(monthlyILS)}/mo (${e.spend_pct ?? 40}% spendable)${e.start_date ? `, started ${e.start_date}` : ''}${e.deposit_day ? `, lands on day ${e.deposit_day}` : ''}${started ? '' : ' — NOT STARTED YET, excluded from totals'}`;
     });
 
     // Compact data summary for the model
@@ -105,7 +109,7 @@ Use null for general strategy talk with no specific visual. Month codes and cate
 
 "action" lets you MAKE REAL CHANGES to the user's data. Use it ONLY when the user clearly asks for a change, and confirm exactly what you did in your reply:
 - {"type":"set_goal","category":"<exact category name from the data>","monthly_target":<number, ILS>} — set or update a monthly spending ceiling (e.g. "Cap dining at 1500")
-- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly","exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>} — add an overseas income source
+- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly","exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
 - {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
 If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
@@ -149,7 +153,9 @@ If the request is ambiguous (unknown category or merchant), ask for clarificatio
         frequency: FREQ_DIV[act.frequency] ? act.frequency : 'monthly',
         exchange_rate: act.exchange_rate || 3.7,
         spend_pct: act.spend_pct ?? 40,
-        active: true
+        active: true,
+        ...(act.start_date ? { start_date: act.start_date } : {}),
+        ...(act.deposit_day ? { deposit_day: act.deposit_day } : {})
       });
       actionResult = `add_external_income:${act.source_name}`;
     } else if (act?.type === 'recategorize_merchant' && act.merchant && act.category) {

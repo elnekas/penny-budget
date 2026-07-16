@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
 import { isInternal } from '@/components/riseup/riseupGroups';
-
-const FREQ_DIV = { monthly: 1, quarterly: 3, yearly: 12 };
+import { countsInMonth, hasLanded, monthlyILS } from './externalIncomeUtils';
 
 export function useBudgetData() {
   const qc = useQueryClient();
@@ -55,13 +54,16 @@ export function useBudgetData() {
 
   // ---- External (USD) income converted to monthly ILS ----
   const externals = extQ.data || [];
-  let externalSpendILS = 0, externalReinvestILS = 0;
-  externals.filter(e => e.active !== false).forEach(e => {
-    const monthlyILS = (e.amount_usd * (e.exchange_rate || 3.7)) / (FREQ_DIV[e.frequency] || 1);
-    const pct = (e.spend_pct ?? 40) / 100;
-    externalSpendILS += monthlyILS * pct;
-    externalReinvestILS += monthlyILS * (1 - pct);
-  });
+  const externalForMonth = (month) => {
+    let spend = 0, reinvest = 0;
+    externals.filter(e => countsInMonth(e, month) && hasLanded(e, month)).forEach(e => {
+      const mILS = monthlyILS(e);
+      const pct = (e.spend_pct ?? 40) / 100;
+      spend += mILS * pct;
+      reinvest += mILS * (1 - pct);
+    });
+    return { spend, reinvest };
+  };
 
   // ---- 3-month category averages (excluding the current partial month) ----
   const fullMonths = months.slice(0, -1);
@@ -80,8 +82,7 @@ export function useBudgetData() {
     monthly,
     categoryAvg,
     externals,
-    externalSpendILS,
-    externalReinvestILS,
+    externalForMonth,
     goals: goalsQ.data || [],
     saveExternal,
     deleteExternal,
