@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import moment from 'moment';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { externalMonthlyILSForMonth, bufferMonthlyILSForMonth } from '@/components/budget/externalIncomeUtils';
 import { Search, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
@@ -27,7 +27,6 @@ export default function RiseUpDashboard() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [hideInternal, setHideInternal] = useState(true);
   const [showInternalList, setShowInternalList] = useState(false);
-  const [includedInternal, setIncludedInternal] = useState([]);
   const [dupsOnly, setDupsOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(60);
@@ -44,6 +43,22 @@ export default function RiseUpDashboard() {
   const { data: potTransfers = [] } = useQuery({
     queryKey: ['deposit-transfers'],
     queryFn: () => base44.entities.DepositTransfer.list('-created_date', 500)
+  });
+
+  // Persisted "include back in totals" choices for internal transactions
+  const qc = useQueryClient();
+  const { data: internalInclusions = [] } = useQuery({
+    queryKey: ['internal-inclusions'],
+    queryFn: () => base44.entities.InternalInclusion.list('-created_date', 500)
+  });
+  const includedInternal = useMemo(() => internalInclusions.map(r => r.name), [internalInclusions]);
+  const toggleInternal = useMutation({
+    mutationFn: async (name) => {
+      const existing = internalInclusions.find(r => r.name === name);
+      if (existing) return base44.entities.InternalInclusion.delete(existing.id);
+      return base44.entities.InternalInclusion.create({ name });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['internal-inclusions'] })
   });
 
 
@@ -236,7 +251,7 @@ export default function RiseUpDashboard() {
               return true;
             })}
             included={includedInternal}
-            onToggle={(name) => setIncludedInternal(list => list.includes(name) ? list.filter(n => n !== name) : [...list, name])}
+            onToggle={(name) => toggleInternal.mutate(name)}
             contextLabel={[
               (!selectedMonth || selectedMonth === 'all') ? 'All months' : (snapshot.month_labels?.[selectedMonth] || selectedMonth),
               selectedAccounts.length ? `${selectedAccounts.length} account${selectedAccounts.length > 1 ? 's' : ''}` : null,
