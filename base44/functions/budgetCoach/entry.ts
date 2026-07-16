@@ -52,13 +52,13 @@ Deno.serve(async (req) => {
     });
 
     // External USD income
-    let extSpend = 0, extReinvest = 0;
+    let extSpend = 0, extReinvest = 0, bufferDraw = 0;
     const nowMonth = new Date().toISOString().slice(0, 7);
     const nextM = (m) => {
       const [y, mo] = m.split('-').map(Number);
       return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
     };
-    const extLines = externals.filter((e) => e.active !== false).map((e) => {
+    const lineFor = (e) => {
       const rate = e.exchange_rate || 3.7;
       const pct = (e.spend_pct ?? 40) / 100;
       if (e.frequency === 'one_time' && e.monthly_slice_usd > 0) {
@@ -75,7 +75,10 @@ Deno.serve(async (req) => {
         // Transfers already visible (un-ignored) in the RiseUp cash flow are not re-added
         const countedILS = transfers.filter((t) => t.income_id === e.id && t.counted_in_cashflow && (t.date || '').slice(0, 7) === nowMonth).reduce((s, t) => s + (t.amount_ils || 0), 0);
         const mILS = Math.max(draw * rate - countedILS, 0);
-        if (mILS > 0) { extSpend += mILS * pct; extReinvest += mILS * (1 - pct); }
+        if (mILS > 0) {
+          if (e.kind === 'buffer') bufferDraw += mILS;
+          else { extSpend += mILS * pct; extReinvest += mILS * (1 - pct); }
+        }
         return `- ${e.source_name}: one-time pot of $${e.amount_usd}, planned slice $${e.monthly_slice_usd}/mo @ rate ${rate} → this month ₪${Math.round(mILS)} (${e.spend_pct ?? 40}% spendable), ~$${Math.round(Math.max(remaining, 0))} left after this month. Actual NIS transfers logged by the user override the planned slice.`;
       }
       const monthlyILS = (e.amount_usd * rate) / (FREQ_DIV[e.frequency] || 1);
@@ -83,11 +86,14 @@ Deno.serve(async (req) => {
         ? (e.start_date || '').slice(0, 7) === nowMonth
         : (!e.start_date || e.start_date.slice(0, 7) <= nowMonth) && (!e.end_date || e.end_date.slice(0, 7) >= nowMonth);
       if (started) {
-        extSpend += monthlyILS * pct;
-        extReinvest += monthlyILS * (1 - pct);
+        if (e.kind === 'buffer') bufferDraw += monthlyILS;
+        else { extSpend += monthlyILS * pct; extReinvest += monthlyILS * (1 - pct); }
       }
       return `- ${e.source_name}: $${e.amount_usd} ${e.frequency} @ rate ${e.exchange_rate || 3.7} → ₪${Math.round(monthlyILS)}/mo (${e.spend_pct ?? 40}% spendable)${e.start_date ? `, started ${e.start_date}` : ''}${e.end_date ? `, ends ${e.end_date}` : ''}${e.deposit_day ? `, lands on day ${e.deposit_day}` : ''}${started ? '' : ' — NOT ACTIVE THIS MONTH, excluded from totals'}`;
-    });
+    };
+    const activeExt = externals.filter((e) => e.active !== false);
+    const extLines = activeExt.filter((e) => e.kind !== 'buffer').map(lineFor);
+    const bufferLines = activeExt.filter((e) => e.kind === 'buffer').map(lineFor);
 
     // Compact data summary for the model
     const monthTable = months.map((m) => {
@@ -118,6 +124,9 @@ ${catTable}
 
 Overseas USD income (already part of the budget; spendable portion adds ₪${Math.round(extSpend)}/mo to income, ₪${Math.round(extReinvest)}/mo goes to reinvestment):
 ${extLines.join('\n') || 'None configured.'}
+
+Local dollar savings buffer (NOT income — this is savings sitting in the user's local USD account, converted to ₪ as needed to cover monthly deficits while the real overseas income stays invested abroad; drawing ~₪${Math.round(bufferDraw)} this month):
+${bufferLines.join('\n') || 'None configured.'}
 
 Category goals:
 ${goalLines}

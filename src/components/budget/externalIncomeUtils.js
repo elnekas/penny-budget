@@ -92,7 +92,15 @@ export function hasLanded(e, month, transfers) {
   return true;
 }
 
+// Savings buffer sources are NOT income — they're savings converted to ILS to cover deficits
+export const isBuffer = (e) => e.kind === 'buffer';
+
 export const externalMonthlyILSForMonth = (externals, month, transfers) =>
   (externals || [])
-    .filter((e) => countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
+    .filter((e) => !isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
+    .reduce((s, e) => s + monthlyILSForMonth(e, month, transfers), 0);
+
+export const bufferMonthlyILSForMonth = (externals, month, transfers) =>
+  (externals || [])
+    .filter((e) => isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
     .reduce((s, e) => s + monthlyILSForMonth(e, month, transfers), 0);

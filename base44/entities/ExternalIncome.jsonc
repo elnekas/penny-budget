@@ -6,6 +6,15 @@
       "type": "string",
       "description": "Name of the income source (e.g. US Rental Property, Dividend Portfolio)"
     },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "income",
+        "buffer"
+      ],
+      "default": "income",
+      "description": "income = real overseas income (rent/dividends). buffer = savings living in the local dollar account, used to cover deficits \u2014 never counted as income"
+    },
     "amount_usd": {
       "type": "number",
       "description": "Amount received in USD per frequency period (for one_time: the total pot size)"

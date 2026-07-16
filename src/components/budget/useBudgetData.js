@@ -72,14 +72,16 @@ export function useBudgetData() {
   const externals = extQ.data || [];
   const transfers = transfersQ.data || [];
   const externalForMonth = (month) => {
-    let spend = 0, reinvest = 0;
+    let spend = 0, reinvest = 0, buffer = 0;
     externals.filter(e => countsInMonth(e, month, transfers) && hasLanded(e, month, transfers)).forEach(e => {
       const mILS = monthlyILSForMonth(e, month, transfers);
+      // Savings buffer draws are not income — tracked separately
+      if (e.kind === 'buffer') { buffer += mILS; return; }
       const pct = (e.spend_pct ?? 40) / 100;
       spend += mILS * pct;
       reinvest += mILS * (1 - pct);
     });
-    return { spend, reinvest };
+    return { spend, reinvest, buffer };
   };
 
   // ---- 3-month category averages (excluding the current partial month) ----
