@@ -8,8 +8,11 @@ const OVERSEAS_SHADES = ['#10b981', '#059669', '#34d399', '#047857', '#6ee7b7', 
 
 export default function IncomeSourcesPie({ transactions, months, monthLabels, externals, transfers }) {
   const [month, setMonth] = useState('all');
+  const [hidden, setHidden] = useState([]);
 
-  const { data, total } = useMemo(() => {
+  const toggle = (name) => setHidden(h => h.includes(name) ? h.filter(n => n !== name) : [...h, name]);
+
+  const { allRows } = useMemo(() => {
     const txs = transactions.filter(t =>
       t.inc && !t.ignored && !isInternal(t.name) && (month === 'all' || t.m === month)
     );
@@ -28,8 +31,11 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
       if (amt > 0) rows.push({ name: `🌎 ${e.source_name}`, value: Math.round(amt), color: OVERSEAS_SHADES[i % OVERSEAS_SHADES.length] });
     });
     rows.sort((a, b) => b.value - a.value);
-    return { data: rows.filter(r => r.value > 0), total: rows.reduce((s, r) => s + r.value, 0) };
+    return { allRows: rows.filter(r => r.value > 0) };
   }, [transactions, month, months, externals, transfers]);
+
+  const data = allRows.filter(r => !hidden.includes(r.name));
+  const total = data.reduce((s, r) => s + r.value, 0);
 
   return (
     <div>
@@ -57,14 +63,23 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
       </div>
 
       <div className="mt-2 space-y-1 max-h-44 overflow-y-auto pr-1">
-        {data.map(d => (
-          <div key={d.name} className="flex items-center gap-2 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-            <span className="flex-1 min-w-0 truncate text-slate-600" dir="auto">{d.name}</span>
-            <span className="text-slate-400">{total ? Math.round(d.value / total * 100) : 0}%</span>
-            <span className="font-medium text-slate-700 w-16 text-right">{fmt(d.value)}</span>
-          </div>
-        ))}
+        {allRows.map(d => {
+          const off = hidden.includes(d.name);
+          return (
+            <label key={d.name} className={`flex items-center gap-2 text-xs cursor-pointer ${off ? 'opacity-40' : ''}`}>
+              <input
+                type="checkbox"
+                checked={!off}
+                onChange={() => toggle(d.name)}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0"
+              />
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
+              <span className="flex-1 min-w-0 truncate text-slate-600" dir="auto">{d.name}</span>
+              <span className="text-slate-400">{!off && total ? Math.round(d.value / total * 100) + '%' : ''}</span>
+              <span className="font-medium text-slate-700 w-16 text-right">{fmt(d.value)}</span>
+            </label>
+          );
+        })}
       </div>
     </div>
   );
