@@ -35,6 +35,10 @@ export default function RiseUpDashboard() {
     queryKey: ['external-income'],
     queryFn: () => base44.entities.ExternalIncome.list('-created_date', 100)
   });
+  const { data: potTransfers = [] } = useQuery({
+    queryKey: ['deposit-transfers'],
+    queryFn: () => base44.entities.DepositTransfer.list('-created_date', 500)
+  });
 
 
   useEffect(() => {
@@ -67,7 +71,7 @@ export default function RiseUpDashboard() {
         if (t.m !== m || t.ignored) return;
         if (t.inc) inc += t.amt; else exp += t.amt;
       });
-      return { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m))), Expense: Math.round(exp) };
+      return { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m, potTransfers))), Expense: Math.round(exp) };
     });
 
     const mTxs = base.filter(t => {
@@ -117,7 +121,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers]);
 
   if (loading) {
     return (
@@ -141,8 +145,8 @@ export default function RiseUpDashboard() {
   const listTotal = listTxs.filter(t => !t.ignored).reduce((s, t) => s + t.amt, 0);
 
   const overseas = (!selectedMonth || selectedMonth === 'all')
-    ? (snapshot.months || []).reduce((s, m) => s + externalMonthlyILSForMonth(externals, m), 0)
-    : externalMonthlyILSForMonth(externals, selectedMonth);
+    ? (snapshot.months || []).reduce((s, m) => s + externalMonthlyILSForMonth(externals, m, potTransfers), 0)
+    : externalMonthlyILSForMonth(externals, selectedMonth, potTransfers);
 
   return (
     <main className="max-w-5xl mx-auto p-4 space-y-5 pb-28">

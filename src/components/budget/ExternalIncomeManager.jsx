@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Globe } from 'lucide-react';
+import { Plus, Trash2, Globe, ArrowLeftRight } from 'lucide-react';
 import { fmt } from '@/components/riseup/riseupGroups';
-import { monthlyILS, countsInMonth, hasLanded } from './externalIncomeUtils';
+import { monthlyILSForMonth, countsInMonth, hasLanded, isPot, potRemainingUSD } from './externalIncomeUtils';
+import PotTransferTracker from './PotTransferTracker';
 
 const inputCls = "w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40";
-const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', end_date: '', deposit_day: '' };
+const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', end_date: '', deposit_day: '', monthly_slice_usd: '' };
 const currentMonth = new Date().toISOString().slice(0, 7);
 
-export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
+export default function ExternalIncomeManager({ externals, onSave, onDelete, transfers = [], candidates = [], onSaveTransfer, onDeleteTransfer }) {
   const [form, setForm] = useState(null);
+  const [openPot, setOpenPot] = useState(null);
 
   const submit = () => {
     if (!form.source_name || !form.amount_usd) return;
@@ -20,6 +22,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
       frequency: form.frequency,
       exchange_rate: Number(form.exchange_rate) || 3.7,
       spend_pct: Number(form.spend_pct) || 0,
+      monthly_slice_usd: form.frequency === 'one_time' && form.monthly_slice_usd ? Number(form.monthly_slice_usd) : null,
       active: true
     };
     if (form.start_date) data.start_date = form.start_date;
@@ -41,29 +44,61 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
 
       <div className="space-y-2">
         {externals.map(e => {
-          const mILS = monthlyILS(e);
-          const notStarted = !countsInMonth(e, currentMonth);
-          const notLanded = !notStarted && !hasLanded(e, currentMonth);
+          const pot = isPot(e);
+          const mILS = monthlyILSForMonth(e, currentMonth, transfers);
+          const remaining = pot ? potRemainingUSD(e, transfers) : 0;
+          const notStarted = !countsInMonth(e, currentMonth, transfers);
+          const notLanded = !notStarted && !hasLanded(e, currentMonth, transfers);
+          const suffix = e.frequency === 'one_time' ? (pot ? ' this mo' : '') : '/mo';
           return (
-            <div key={e.id} className={`flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100 ${notStarted ? 'opacity-60' : ''}`} onClick={() => setForm({ ...e, start_date: e.start_date || '', end_date: e.end_date || '', deposit_day: e.deposit_day || '' })}>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
-                <p className="text-xs text-slate-400">
-                  ${e.amount_usd.toLocaleString()} {e.frequency === 'one_time' ? 'one-time' : e.frequency} · {e.spend_pct ?? 40}% to spend
-                  {e.start_date && ` · from ${e.start_date.slice(0, 7)}`}
-                  {e.end_date && ` · until ${e.end_date.slice(0, 7)}`}
-                  {e.deposit_day && ` · lands on the ${e.deposit_day}th`}
-                </p>
-                {notStarted && <p className="text-[11px] text-amber-600 font-medium">{e.end_date && e.end_date.slice(0, 7) < currentMonth ? 'Ended — excluded from totals' : 'Not started yet — excluded from totals'}</p>}
-                {notLanded && <p className="text-[11px] text-slate-400">Hasn't landed yet this month</p>}
+            <div key={e.id}>
+              <div className={`flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 text-sm cursor-pointer hover:bg-slate-100 ${notStarted ? 'opacity-60' : ''}`} onClick={() => setForm({ ...e, start_date: e.start_date || '', end_date: e.end_date || '', deposit_day: e.deposit_day || '', monthly_slice_usd: e.monthly_slice_usd || '' })}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
+                  <p className="text-xs text-slate-400">
+                    {pot
+                      ? `$${e.amount_usd.toLocaleString()} pot · slice $${Number(e.monthly_slice_usd).toLocaleString()}/mo · $${Math.max(Math.round(remaining), 0).toLocaleString()} left`
+                      : `$${e.amount_usd.toLocaleString()} ${e.frequency === 'one_time' ? 'one-time' : e.frequency}`}
+                    {` · ${e.spend_pct ?? 40}% to spend`}
+                    {e.start_date && ` · from ${e.start_date.slice(0, 7)}`}
+                    {e.end_date && ` · until ${e.end_date.slice(0, 7)}`}
+                    {e.deposit_day && ` · lands on the ${e.deposit_day}th`}
+                  </p>
+                  {notStarted && (
+                    <p className="text-[11px] text-amber-600 font-medium">
+                      {pot && remaining <= 0 ? 'Pot fully drawn — excluded from totals'
+                        : e.end_date && e.end_date.slice(0, 7) < currentMonth ? 'Ended — excluded from totals'
+                        : 'Not started yet — excluded from totals'}
+                    </p>
+                  )}
+                  {notLanded && <p className="text-[11px] text-slate-400">Hasn't landed yet this month</p>}
+                </div>
+                <div className="text-right text-xs">
+                  <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}{suffix} spend</p>
+                  <p className="text-teal-500">{fmt(mILS * (1 - (e.spend_pct ?? 40) / 100))}{suffix} reinvest</p>
+                </div>
+                {pot && (
+                  <button
+                    onClick={(ev) => { ev.stopPropagation(); setOpenPot(openPot === e.id ? null : e.id); }}
+                    className={`p-1 ${openPot === e.id ? 'text-teal-600' : 'text-slate-300 hover:text-teal-600'}`}
+                    title="Track actual transfers"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={(ev) => { ev.stopPropagation(); onDelete(e.id); }} className="text-slate-300 hover:text-rose-500 p-1">
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-              <div className="text-right text-xs">
-                <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}{e.frequency === 'one_time' ? '' : '/mo'} spend</p>
-                <p className="text-teal-500">{fmt(mILS * (1 - (e.spend_pct ?? 40) / 100))}{e.frequency === 'one_time' ? '' : '/mo'} reinvest</p>
-              </div>
-              <button onClick={(ev) => { ev.stopPropagation(); onDelete(e.id); }} className="text-slate-300 hover:text-rose-500 p-1">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {pot && openPot === e.id && (
+                <PotTransferTracker
+                  pot={e}
+                  transfers={transfers}
+                  candidates={candidates}
+                  onSave={onSaveTransfer}
+                  onDelete={onDeleteTransfer}
+                />
+              )}
             </div>
           );
         })}
@@ -83,6 +118,12 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
               <option value="yearly">Yearly</option>
               <option value="one_time">One-time deposit</option>
             </select>
+            {form.frequency === 'one_time' && (
+              <div className="col-span-2">
+                <label className="text-[11px] text-slate-500">Monthly slice (USD, optional) — how much of this pot to budget as income each month until it runs out</label>
+                <input className={inputCls} type="number" placeholder="e.g. 5000" value={form.monthly_slice_usd} onChange={e => setForm({ ...form, monthly_slice_usd: e.target.value })} />
+              </div>
+            )}
             <input className={inputCls} type="number" step="0.01" placeholder="USD→ILS rate" value={form.exchange_rate} onChange={e => setForm({ ...form, exchange_rate: e.target.value })} />
             <input className={inputCls} type="number" min="0" max="100" placeholder="% to spend" value={form.spend_pct} onChange={e => setForm({ ...form, spend_pct: e.target.value })} />
             <div>

@@ -8,7 +8,7 @@
     },
     "amount_usd": {
       "type": "number",
-      "description": "Amount received in USD per frequency period"
+      "description": "Amount received in USD per frequency period (for one_time: the total pot size)"
     },
     "frequency": {
       "type": "string",
@@ -19,7 +19,14 @@
         "one_time"
       ],
       "default": "monthly",
-      "description": "How often this income arrives (one_time = single deposit, counted only in its start_date month)"
+      "description": "How often this income arrives (one_time = single deposit / pot)"
+    },
+    "monthly_slice_usd": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "For one_time pots: planned USD budgeted as spendable income each month until the pot runs out. Actual DepositTransfer records override the planned slice."
     },
     "exchange_rate": {
       "type": "number",

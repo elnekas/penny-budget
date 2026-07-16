@@ -18,12 +18,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'messages required' }, { status: 400 });
     }
 
-    const [snapRes, externals, goals, overrides, renames] = await Promise.all([
+    const [snapRes, externals, goals, overrides, renames, transfers] = await Promise.all([
       fetch(SNAPSHOT_URL),
       base44.entities.ExternalIncome.list('-created_date', 100),
       base44.entities.CategoryGoal.list('-created_date', 300),
       base44.entities.RiseUpOverride.list('-created_date', 2000),
-      base44.entities.RiseUpCategoryRename.list('-created_date', 500)
+      base44.entities.RiseUpCategoryRename.list('-created_date', 500),
+      base44.entities.DepositTransfer.list('-created_date', 500)
     ]);
     const snapshot = await snapRes.json();
 
@@ -53,9 +54,29 @@ Deno.serve(async (req) => {
     // External USD income
     let extSpend = 0, extReinvest = 0;
     const nowMonth = new Date().toISOString().slice(0, 7);
+    const nextM = (m) => {
+      const [y, mo] = m.split('-').map(Number);
+      return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
+    };
     const extLines = externals.filter((e) => e.active !== false).map((e) => {
-      const monthlyILS = (e.amount_usd * (e.exchange_rate || 3.7)) / (FREQ_DIV[e.frequency] || 1);
+      const rate = e.exchange_rate || 3.7;
       const pct = (e.spend_pct ?? 40) / 100;
+      if (e.frequency === 'one_time' && e.monthly_slice_usd > 0) {
+        // Sliced pot: planned monthly slice, overridden by actual logged transfers
+        let remaining = e.amount_usd, draw = 0, guard = 0;
+        let m = (e.start_date || `${nowMonth}-01`).slice(0, 7);
+        while (m <= nowMonth && guard++ < 240) {
+          const rows = transfers.filter((t) => t.income_id === e.id && (t.date || '').slice(0, 7) === m);
+          const d = rows.length ? rows.reduce((s, t) => s + (t.amount_ils || 0) / rate, 0) : Math.min(e.monthly_slice_usd, Math.max(remaining, 0));
+          if (m === nowMonth) draw = d;
+          remaining -= d;
+          m = nextM(m);
+        }
+        const mILS = draw * rate;
+        if (draw > 0) { extSpend += mILS * pct; extReinvest += mILS * (1 - pct); }
+        return `- ${e.source_name}: one-time pot of $${e.amount_usd}, planned slice $${e.monthly_slice_usd}/mo @ rate ${rate} → this month ₪${Math.round(mILS)} (${e.spend_pct ?? 40}% spendable), ~$${Math.round(Math.max(remaining, 0))} left after this month. Actual NIS transfers logged by the user override the planned slice.`;
+      }
+      const monthlyILS = (e.amount_usd * rate) / (FREQ_DIV[e.frequency] || 1);
       const started = e.frequency === 'one_time'
         ? (e.start_date || '').slice(0, 7) === nowMonth
         : (!e.start_date || e.start_date.slice(0, 7) <= nowMonth) && (!e.end_date || e.end_date.slice(0, 7) >= nowMonth);
@@ -111,7 +132,7 @@ Use null for general strategy talk with no specific visual. Month codes and cate
 
 "action" lets you MAKE REAL CHANGES to the user's data. Use it ONLY when the user clearly asks for a change, and confirm exactly what you did in your reply:
 - {"type":"set_goal","category":"<exact category name from the data>","monthly_target":<number, ILS>} — set or update a monthly spending ceiling (e.g. "Cap dining at 1500")
-- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly"|"one_time" (one_time = a single deposit; set start_date to the deposit date),"exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"end_date":"YYYY-MM-DD" (optional, when it ends),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
+- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly"|"one_time" (one_time = a single deposit; set start_date to the deposit date),"monthly_slice_usd":<number, optional — for one_time pots: how many USD/month to budget as spendable income until the pot runs out>,"exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"end_date":"YYYY-MM-DD" (optional, when it ends),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
 - {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
 If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
@@ -156,6 +177,7 @@ If the request is ambiguous (unknown category or merchant), ask for clarificatio
         exchange_rate: act.exchange_rate || 3.7,
         spend_pct: act.spend_pct ?? 40,
         active: true,
+        ...(act.monthly_slice_usd > 0 ? { monthly_slice_usd: act.monthly_slice_usd } : {}),
         ...(act.start_date ? { start_date: act.start_date } : {}),
         ...(act.end_date ? { end_date: act.end_date } : {}),
         ...(act.deposit_day ? { deposit_day: act.deposit_day } : {})

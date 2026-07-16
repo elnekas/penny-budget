@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
 import { isInternal } from '@/components/riseup/riseupGroups';
-import { countsInMonth, hasLanded, monthlyILS } from './externalIncomeUtils';
+import { countsInMonth, hasLanded, monthlyILSForMonth } from './externalIncomeUtils';
 
 export function useBudgetData() {
   const qc = useQueryClient();
@@ -16,6 +16,10 @@ export function useBudgetData() {
     queryKey: ['category-goals'],
     queryFn: () => base44.entities.CategoryGoal.list('-created_date', 300)
   });
+  const transfersQ = useQuery({
+    queryKey: ['deposit-transfers'],
+    queryFn: () => base44.entities.DepositTransfer.list('-created_date', 500)
+  });
 
   const saveExternal = useMutation({
     mutationFn: ({ id, data }) => id
@@ -26,6 +30,14 @@ export function useBudgetData() {
   const deleteExternal = useMutation({
     mutationFn: (id) => base44.entities.ExternalIncome.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['external-income'] })
+  });
+  const saveTransfer = useMutation({
+    mutationFn: (data) => base44.entities.DepositTransfer.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deposit-transfers'] })
+  });
+  const deleteTransfer = useMutation({
+    mutationFn: (id) => base44.entities.DepositTransfer.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deposit-transfers'] })
   });
   const saveGoal = useMutation({
     mutationFn: async ({ category, monthly_target }) => {
@@ -54,10 +66,11 @@ export function useBudgetData() {
 
   // ---- External (USD) income converted to monthly ILS ----
   const externals = extQ.data || [];
+  const transfers = transfersQ.data || [];
   const externalForMonth = (month) => {
     let spend = 0, reinvest = 0;
-    externals.filter(e => countsInMonth(e, month) && hasLanded(e, month)).forEach(e => {
-      const mILS = monthlyILS(e);
+    externals.filter(e => countsInMonth(e, month, transfers) && hasLanded(e, month, transfers)).forEach(e => {
+      const mILS = monthlyILSForMonth(e, month, transfers);
       const pct = (e.spend_pct ?? 40) / 100;
       spend += mILS * pct;
       reinvest += mILS * (1 - pct);
@@ -83,10 +96,13 @@ export function useBudgetData() {
     categoryAvg,
     externals,
     externalForMonth,
+    transfers,
     goals: goalsQ.data || [],
     saveExternal,
     deleteExternal,
+    saveTransfer,
+    deleteTransfer,
     saveGoal,
-    loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading
+    loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading || transfersQ.isLoading
   };
 }

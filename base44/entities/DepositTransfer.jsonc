@@ -1,0 +1,36 @@
+{
+  "name": "DepositTransfer",
+  "type": "object",
+  "properties": {
+    "income_id": {
+      "type": "string",
+      "description": "Id of the ExternalIncome one-time pot this transfer draws from"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the money actually landed in the ILS account"
+    },
+    "amount_ils": {
+      "type": "number",
+      "description": "Actual amount received in ILS"
+    },
+    "tx_id": {
+      "type": "string",
+      "description": "Linked RiseUp transaction id (optional)"
+    },
+    "tx_name": {
+      "type": "string",
+      "description": "Linked RiseUp transaction name (optional)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    }
+  },
+  "required": [
+    "income_id",
+    "date",
+    "amount_ils"
+  ]
+}

@@ -13,8 +13,8 @@ const selectCls = "px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm
 export default function BudgetCockpit() {
   const {
     snapshot, transactions, monthly, months, categoryAvg,
-    externals, externalForMonth,
-    goals, saveExternal, deleteExternal, saveGoal, loadingBudget, error
+    externals, externalForMonth, transfers,
+    goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, saveGoal, loadingBudget, error
   } = useBudgetData();
 
   const { action, clear } = useContext(PennyActionContext);
@@ -91,6 +91,10 @@ export default function BudgetCockpit() {
           externals={externals}
           onSave={(p) => saveExternal.mutate(p)}
           onDelete={(id) => deleteExternal.mutate(id)}
+          transfers={transfers}
+          candidates={transactions.filter(t => t.inc && t.ignored)}
+          onSaveTransfer={(d) => saveTransfer.mutate(d)}
+          onDeleteTransfer={(id) => deleteTransfer.mutate(id)}
         />
       </div>
 
