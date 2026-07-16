@@ -2,7 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { fmt, isInternal } from '../riseupGroups';
 import { PALETTE, totalsBy } from './analyticsUtils';
-import { externalMonthlyILSForMonth } from '@/components/budget/externalIncomeUtils';
+import { monthlyILSForMonth, countsInMonth, hasLanded, isBuffer } from '@/components/budget/externalIncomeUtils';
+
+const OVERSEAS_SHADES = ['#10b981', '#059669', '#34d399', '#047857', '#6ee7b7', '#065f46'];
 
 export default function IncomeSourcesPie({ transactions, months, monthLabels, externals, transfers }) {
   const [month, setMonth] = useState('all');
@@ -18,10 +20,13 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
       const rest = rows.slice(7);
       rows = [...rows.slice(0, 7), { name: 'Other income', value: rest.reduce((s, r) => s + r.value, 0), color: '#cbd5e1' }];
     }
-    const overseas = month === 'all'
-      ? months.reduce((s, m) => s + externalMonthlyILSForMonth(externals, m, transfers), 0)
-      : externalMonthlyILSForMonth(externals, month, transfers);
-    if (overseas > 0) rows.push({ name: '🌎 Overseas income', value: Math.round(overseas), color: '#10b981' });
+    // Break overseas income down per source
+    const monthList = month === 'all' ? months : [month];
+    (externals || []).filter(e => !isBuffer(e)).forEach((e, i) => {
+      const amt = monthList.reduce((s, m) =>
+        s + (countsInMonth(e, m, transfers) && hasLanded(e, m, transfers) ? monthlyILSForMonth(e, m, transfers) : 0), 0);
+      if (amt > 0) rows.push({ name: `🌎 ${e.source_name}`, value: Math.round(amt), color: OVERSEAS_SHADES[i % OVERSEAS_SHADES.length] });
+    });
     rows.sort((a, b) => b.value - a.value);
     return { data: rows.filter(r => r.value > 0), total: rows.reduce((s, r) => s + r.value, 0) };
   }, [transactions, month, months, externals, transfers]);
