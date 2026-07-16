@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Loader2, Terminal } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +8,7 @@ import DeepDiveTable from '@/components/riseup/analytics/DeepDiveTable';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
 import { cleanExpenses } from '@/components/riseup/analytics/analyticsUtils';
 import SpendingPie from '@/components/riseup/analytics/SpendingPie';
+import IncomeSourcesPie from '@/components/riseup/analytics/IncomeSourcesPie';
 import MonthCompare from '@/components/riseup/analytics/MonthCompare';
 import CategoryCompare from '@/components/riseup/analytics/CategoryCompare';
 
@@ -13,8 +16,17 @@ export default function RiseUpAnalytics() {
   const { snapshot, transactions, loading, error } = useRiseUpData();
   const [deepDive, setDeepDive] = useState(false);
 
+  const { data: externals = [] } = useQuery({
+    queryKey: ['external-income'],
+    queryFn: () => base44.entities.ExternalIncome.list('-created_date', 100)
+  });
+  const { data: potTransfers = [] } = useQuery({
+    queryKey: ['deposit-transfers'],
+    queryFn: () => base44.entities.DepositTransfer.list('-created_date', 500)
+  });
+
   const { expenses, categories } = useMemo(() => {
-    const exp = cleanExpenses(transactions);
+    const exp = cleanExpenses(transactions.filter(t => !t.planned));
     return { expenses: exp, categories: [...new Set(exp.map(t => t.category))].sort() };
   }, [transactions]);
 
@@ -72,6 +84,11 @@ export default function RiseUpAnalytics() {
         <Card className="p-4 border-0 shadow-sm">
           <h3 className="font-semibold text-slate-800 mb-3 text-sm">⚖️ Month vs Month</h3>
           <MonthCompare expenses={expenses} months={months} monthLabels={monthLabels} />
+        </Card>
+
+        <Card className="p-4 border-0 shadow-sm">
+          <h3 className="font-semibold text-slate-800 mb-3 text-sm">💰 Where does it come from?</h3>
+          <IncomeSourcesPie transactions={transactions} months={months} monthLabels={monthLabels} externals={externals} transfers={potTransfers} />
         </Card>
       </div>
 

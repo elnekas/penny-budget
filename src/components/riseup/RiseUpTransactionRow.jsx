@@ -1,10 +1,10 @@
 import React from 'react';
 import moment from 'moment';
-import { Eye, EyeOff, ListFilter } from 'lucide-react';
+import { Eye, EyeOff, ListFilter, CalendarClock } from 'lucide-react';
 import { GROUPS, fmt } from './riseupGroups';
 import { cn } from '@/lib/utils';
 
-export default function RiseUpTransactionRow({ t, categories, onCategoryChange, onToggleIgnore, onFilterSimilar }) {
+export default function RiseUpTransactionRow({ t, categories, onCategoryChange, onToggleIgnore, onFilterSimilar, onTogglePlanned }) {
   const meta = GROUPS[t.group] || GROUPS.other;
   const handleCategory = (val) => {
     if (val === '__new__') {
@@ -27,6 +27,9 @@ export default function RiseUpTransactionRow({ t, categories, onCategoryChange, 
           <span className="font-medium text-slate-800 truncate text-sm" dir="auto">{t.name}</span>
           {t.possibleDuplicate && (
             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0">Duplicate?</span>
+          )}
+          {t.planned && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700 shrink-0">Planned</span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
@@ -63,6 +66,15 @@ export default function RiseUpTransactionRow({ t, categories, onCategoryChange, 
         </span>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-slate-400">{moment(t.td).format('D MMM')}</span>
+          {onTogglePlanned && !t.inc && (
+            <button
+              onClick={() => onTogglePlanned(t)}
+              title={t.planned ? 'Return to monthly spend' : 'Mark as planned one-off (tallies against savings, not the month)'}
+              className={t.planned ? 'text-violet-500' : 'text-slate-300 hover:text-violet-500'}
+            >
+              <CalendarClock className="w-4 h-4" />
+            </button>
+          )}
           {onFilterSimilar && (
             <button
               onClick={() => onFilterSimilar(t)}

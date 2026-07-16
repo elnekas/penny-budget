@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import moment from 'moment';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { externalMonthlyILSForMonth } from '@/components/budget/externalIncomeUtils';
+import { externalMonthlyILSForMonth, bufferMonthlyILSForMonth } from '@/components/budget/externalIncomeUtils';
 import { Search, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,8 @@ export default function RiseUpDashboard() {
   const [flowFilter, setFlowFilter] = useState('all');
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortBy, setSortBy] = useState('amount_desc');
+  const [showBuffer, setShowBuffer] = useState(false);
+  const [showPlanned, setShowPlanned] = useState(false);
 
   const { data: externals = [] } = useQuery({
     queryKey: ['external-income'],
@@ -66,12 +68,17 @@ export default function RiseUpDashboard() {
 
     const cData = snapshot.months.map((m, idx) => {
       const isLatest = idx === snapshot.months.length - 1;
-      let inc = 0, exp = 0;
+      let inc = 0, exp = 0, planned = 0;
       chartBase.forEach(t => {
         if (t.m !== m || t.ignored) return;
-        if (t.inc) inc += t.amt; else exp += t.amt;
+        if (t.inc) inc += t.amt;
+        else if (t.planned) planned += t.amt;
+        else exp += t.amt;
       });
-      return { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m, potTransfers))), Expense: Math.round(exp) };
+      const row = { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m, potTransfers))), Expense: Math.round(exp) };
+      if (showBuffer) row['Buffer draw'] = Math.round(bufferMonthlyILSForMonth(externals, m, potTransfers));
+      if (showPlanned) row['Planned'] = Math.round(planned);
+      return row;
     });
 
     const mTxs = base.filter(t => {
@@ -85,7 +92,8 @@ export default function RiseUpDashboard() {
     let inc = 0, exp = 0;
     mTxs.forEach(t => {
       if (t.ignored) return;
-      if (t.inc) inc += t.amt; else exp += t.amt;
+      if (t.inc) inc += t.amt;
+      else if (!t.planned) exp += t.amt; // planned one-offs tally against savings
     });
 
     const dups = mTxs.filter(t => t.possibleDuplicate && !t.ignored).length;
@@ -121,7 +129,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers, showBuffer, showPlanned]);
 
   if (loading) {
     return (
@@ -210,8 +218,20 @@ export default function RiseUpDashboard() {
         <div className="grid md:grid-cols-2 gap-5">
           {/* Monthly chart */}
           <Card className="p-4 border-0 shadow-sm">
-            <h3 className="font-semibold text-slate-800 mb-3 text-sm">Monthly Income vs Expense</h3>
-            <RiseUpMonthlyChart data={chartData} />
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h3 className="font-semibold text-slate-800 text-sm flex-1">Monthly Income vs Expense</h3>
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+                <input type="checkbox" checked={showBuffer} onChange={e => setShowBuffer(e.target.checked)}
+                  className="rounded border-slate-300 text-amber-500 focus:ring-amber-400 w-3.5 h-3.5" />
+                Buffer draws
+              </label>
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+                <input type="checkbox" checked={showPlanned} onChange={e => setShowPlanned(e.target.checked)}
+                  className="rounded border-slate-300 text-violet-500 focus:ring-violet-400 w-3.5 h-3.5" />
+                Planned one-offs
+              </label>
+            </div>
+            <RiseUpMonthlyChart data={chartData} showBuffer={showBuffer} showPlanned={showPlanned} />
           </Card>
 
           {/* Group breakdown */}
@@ -273,6 +293,7 @@ export default function RiseUpDashboard() {
                 categories={categories}
                 onCategoryChange={(tx, cat) => saveCategoryForName.mutate({ name: tx.name, category: cat })}
                 onToggleIgnore={(tx) => saveOverride.mutate({ txId: tx.id, changes: { ignored: !tx.ignored } })}
+                onTogglePlanned={(tx) => saveOverride.mutate({ txId: tx.id, changes: { planned: !tx.planned } })}
                 onFilterSimilar={(tx) => {
                   setSearch(tx.name || '');
                   setSelectedMonth('all');

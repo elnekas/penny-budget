@@ -108,6 +108,7 @@ export function useRiseUpData() {
         category,
         group: t.inc ? 'income' : (groupMap.get(category) || groupForCategory(category, t.inc)),
         ignored: !!ov?.ignored,
+        planned: !!ov?.planned,
         hasOverride: !!ov?.category,
         possibleDuplicate: dupCount[t.name + '|' + t.amt + '|' + t.td] > 1
       };

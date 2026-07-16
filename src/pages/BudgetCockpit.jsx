@@ -5,6 +5,7 @@ import FreedomGauge from '@/components/budget/FreedomGauge';
 import SpendingReview from '@/components/budget/SpendingReview';
 import ExternalIncomeManager from '@/components/budget/ExternalIncomeManager';
 import FixedExpensePanel from '@/components/budget/FixedExpensePanel';
+import CockpitPie from '@/components/budget/CockpitPie';
 import FocusStage from '@/components/budget/FocusStage';
 import { PennyActionContext } from '@/components/finance/FinanceShell';
 
@@ -111,6 +112,11 @@ export default function BudgetCockpit() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
+        <CockpitPie transactions={transactions} month={selectedMonth} monthLabel={monthLabel} />
+        <FixedExpensePanel transactions={transactions} month={selectedMonth} />
+      </div>
+
+      <div>
         <SpendingReview
           month={selectedMonth}
           monthLabel={monthLabel}
@@ -123,7 +129,6 @@ export default function BudgetCockpit() {
           onSaveGoal={(p) => saveGoal.mutate(p)}
           onDeleteGoal={(id) => deleteGoal.mutate(id)}
         />
-        <FixedExpensePanel transactions={transactions} month={selectedMonth} />
       </div>
     </main>
   );

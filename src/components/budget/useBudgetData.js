@@ -59,12 +59,13 @@ export function useBudgetData() {
   // ---- Monthly aggregation from RiseUp transactions ----
   const months = riseup.snapshot?.months || [];
   const monthly = {};
-  months.forEach(m => { monthly[m] = { income: 0, fixed: 0, variable: 0, categories: {} }; });
+  months.forEach(m => { monthly[m] = { income: 0, fixed: 0, variable: 0, planned: 0, categories: {} }; });
   riseup.transactions.forEach(t => {
     if (t.ignored || isInternal(t.name)) return;
     const s = monthly[t.m];
     if (!s) return;
     if (t.inc) s.income += t.amt;
+    else if (t.planned) s.planned += t.amt; // outstanding planned — tallies against savings, not the month
     else if (t.fixed) s.fixed += t.amt;
     else {
       s.variable += t.amt;

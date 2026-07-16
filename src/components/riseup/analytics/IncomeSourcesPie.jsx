@@ -1,0 +1,66 @@
+import React, { useMemo, useState } from 'react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { fmt, isInternal } from '../riseupGroups';
+import { PALETTE, totalsBy } from './analyticsUtils';
+import { externalMonthlyILSForMonth } from '@/components/budget/externalIncomeUtils';
+
+export default function IncomeSourcesPie({ transactions, months, monthLabels, externals, transfers }) {
+  const [month, setMonth] = useState('all');
+
+  const { data, total } = useMemo(() => {
+    const txs = transactions.filter(t =>
+      t.inc && !t.ignored && !isInternal(t.name) && (month === 'all' || t.m === month)
+    );
+    let rows = Object.entries(totalsBy(txs, t => t.name))
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v], i) => ({ name: k, value: Math.round(v), color: PALETTE[i % PALETTE.length] }));
+    if (rows.length > 7) {
+      const rest = rows.slice(7);
+      rows = [...rows.slice(0, 7), { name: 'Other income', value: rest.reduce((s, r) => s + r.value, 0), color: '#cbd5e1' }];
+    }
+    const overseas = month === 'all'
+      ? months.reduce((s, m) => s + externalMonthlyILSForMonth(externals, m, transfers), 0)
+      : externalMonthlyILSForMonth(externals, month, transfers);
+    if (overseas > 0) rows.push({ name: '🌎 Overseas income', value: Math.round(overseas), color: '#10b981' });
+    rows.sort((a, b) => b.value - a.value);
+    return { data: rows.filter(r => r.value > 0), total: rows.reduce((s, r) => s + r.value, 0) };
+  }, [transactions, month, months, externals, transfers]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <select value={month} onChange={e => setMonth(e.target.value)}
+          className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+          <option value="all">All months</option>
+          {months.map(m => <option key={m} value={m}>{monthLabels?.[m] || m}</option>)}
+        </select>
+      </div>
+
+      <div className="relative h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="95%" paddingAngle={2} strokeWidth={0}>
+              {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Pie>
+            <Tooltip formatter={(v) => fmt(v)} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[10px] uppercase tracking-wide text-slate-400">Total in</span>
+          <span className="text-lg font-bold text-slate-800">{fmt(total)}</span>
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-1 max-h-44 overflow-y-auto pr-1">
+        {data.map(d => (
+          <div key={d.name} className="flex items-center gap-2 text-xs">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
+            <span className="flex-1 min-w-0 truncate text-slate-600" dir="auto">{d.name}</span>
+            <span className="text-slate-400">{total ? Math.round(d.value / total * 100) : 0}%</span>
+            <span className="font-medium text-slate-700 w-16 text-right">{fmt(d.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -14,6 +14,11 @@
       "type": "boolean",
       "default": false,
       "description": "Exclude this transaction from totals (duplicate / internal)"
+    },
+    "planned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Outstanding planned expense (big trip, annual payment) \u2014 tallies against savings instead of the monthly spend"
     }
   },
   "required": [
