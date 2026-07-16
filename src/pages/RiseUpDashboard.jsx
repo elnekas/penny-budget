@@ -72,7 +72,7 @@ export default function RiseUpDashboard() {
       chartBase.forEach(t => {
         if (t.m !== m || t.ignored) return;
         if (t.inc) inc += t.amt;
-        else if (t.planned) planned += t.amt;
+        else if (showPlanned && t.planned) planned += t.amt; // toggle on: deduct one-offs from the month's expense
         else exp += t.amt;
       });
       const row = { name: moment(m, 'YYYY-MM').format('MMM') + (isLatest ? '*' : ''), Income: Math.round(inc + (selectedCategories.length ? 0 : externalMonthlyILSForMonth(externals, m, potTransfers))), Expense: Math.round(exp) };
@@ -93,7 +93,7 @@ export default function RiseUpDashboard() {
     mTxs.forEach(t => {
       if (t.ignored) return;
       if (t.inc) inc += t.amt;
-      else if (!t.planned) exp += t.amt; // planned one-offs tally against savings
+      else if (!(showPlanned && t.planned)) exp += t.amt; // toggle on: planned one-offs tally against savings instead
     });
 
     const dups = mTxs.filter(t => t.possibleDuplicate && !t.ignored).length;
