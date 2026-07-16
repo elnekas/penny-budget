@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useBudgetData } from '@/components/budget/useBudgetData';
 import FreedomGauge from '@/components/budget/FreedomGauge';
-import CategoryGoals from '@/components/budget/CategoryGoals';
+import SpendingReview from '@/components/budget/SpendingReview';
 import ExternalIncomeManager from '@/components/budget/ExternalIncomeManager';
 import FixedExpensePanel from '@/components/budget/FixedExpensePanel';
 import FocusStage from '@/components/budget/FocusStage';
@@ -14,7 +14,7 @@ export default function BudgetCockpit() {
   const {
     snapshot, transactions, monthly, months, categoryAvg,
     externals, externalForMonth, transfers,
-    goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, updateTransfer, saveOverride, saveGoal, loadingBudget, error
+    goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, updateTransfer, saveOverride, saveGoal, deleteGoal, loadingBudget, error
   } = useBudgetData();
 
   const { action, clear } = useContext(PennyActionContext);
@@ -111,11 +111,17 @@ export default function BudgetCockpit() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
-        <CategoryGoals
+        <SpendingReview
+          month={selectedMonth}
+          monthLabel={monthLabel}
+          months={months}
+          monthly={monthly}
+          monthLabels={snapshot?.month_labels}
           categoryAvg={categoryAvg}
-          currentStat={monthly[selectedMonth]}
           goals={goals}
+          transactions={transactions}
           onSaveGoal={(p) => saveGoal.mutate(p)}
+          onDeleteGoal={(id) => deleteGoal.mutate(id)}
         />
         <FixedExpensePanel transactions={transactions} month={selectedMonth} />
       </div>

@@ -51,6 +51,10 @@ export function useBudgetData() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['category-goals'] })
   });
+  const deleteGoal = useMutation({
+    mutationFn: (id) => base44.entities.CategoryGoal.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['category-goals'] })
+  });
 
   // ---- Monthly aggregation from RiseUp transactions ----
   const months = riseup.snapshot?.months || [];
@@ -110,6 +114,7 @@ export function useBudgetData() {
     deleteTransfer,
     updateTransfer,
     saveGoal,
+    deleteGoal,
     loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading || transfersQ.isLoading
   };
 }
