@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { fmt } from '@/components/riseup/riseupGroups';
+import FreedomGaugeExplainer from './FreedomGaugeExplainer';
 
 export default function FreedomGauge({ stat, externalSpend, externalReinvest, label }) {
   const totalIncome = (stat?.income || 0) + externalSpend;
@@ -35,6 +36,14 @@ export default function FreedomGauge({ stat, externalSpend, externalReinvest, la
           💎 Plus {fmt(externalReinvest)}/month flowing into reinvestment — your wealth engine.
         </p>
       )}
+      <FreedomGaugeExplainer
+        localIncome={stat?.income || 0}
+        externalSpend={externalSpend}
+        fixed={fixed}
+        spent={spent}
+        disposable={disposable}
+        remaining={remaining}
+      />
     </Card>
   );
 }
