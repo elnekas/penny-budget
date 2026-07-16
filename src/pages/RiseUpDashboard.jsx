@@ -13,6 +13,7 @@ import RiseUpMonthlyChart from '@/components/riseup/RiseUpMonthlyChart';
 import GroupBreakdown from '@/components/riseup/GroupBreakdown';
 import RiseUpTransactionRow from '@/components/riseup/RiseUpTransactionRow';
 import RiseUpListControls from '@/components/riseup/RiseUpListControls';
+import InternalExclusionsPanel from '@/components/riseup/InternalExclusionsPanel';
 
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
@@ -24,6 +25,8 @@ export default function RiseUpDashboard() {
   const [selectedType, setSelectedType] = useState('all');
   const [activeGroup, setActiveGroup] = useState(null);
   const [hideInternal, setHideInternal] = useState(true);
+  const [showInternalList, setShowInternalList] = useState(false);
+  const [includedInternal, setIncludedInternal] = useState([]);
   const [dupsOnly, setDupsOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(60);
@@ -53,7 +56,7 @@ export default function RiseUpDashboard() {
   const { accounts, categories, monthTxs, listTxs, chartData, income, expense, dupCount } = useMemo(() => {
     if (!snapshot) return { accounts: [], categories: [], monthTxs: [], listTxs: [], chartData: [], income: 0, expense: 0, dupCount: 0 };
 
-    const base = transactions.filter(t => !hideInternal || !isInternal(t.name));
+    const base = transactions.filter(t => !hideInternal || !isInternal(t.name) || includedInternal.includes(t.name));
 
     const accSet = new Set();
     const catSet = new Set();
@@ -129,7 +132,7 @@ export default function RiseUpDashboard() {
       expense: exp,
       dupCount: dups
     };
-  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers, showBuffer, showPlanned]);
+  }, [snapshot, transactions, selectedMonth, selectedAccount, selectedType, activeGroup, hideInternal, includedInternal, dupsOnly, search, flowFilter, selectedCategories, sortBy, externals, potTransfers, showBuffer, showPlanned]);
 
   if (loading) {
     return (
@@ -186,16 +189,32 @@ export default function RiseUpDashboard() {
             <option value="fixed">Fixed / Recurring</option>
             <option value="variable">Variable / One-off</option>
           </select>
-          <label className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-600 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hideInternal}
-              onChange={e => setHideInternal(e.target.checked)}
-              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-            />
-            Hide card settlements & transfers
-          </label>
+          <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-600">
+            <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+              <input
+                type="checkbox"
+                checked={hideInternal}
+                onChange={e => setHideInternal(e.target.checked)}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+              />
+              <span className="truncate">Hide card settlements & transfers</span>
+            </label>
+            <button
+              onClick={() => setShowInternalList(v => !v)}
+              className={`shrink-0 font-medium ${showInternalList ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'}`}
+            >
+              {showInternalList ? 'hide list' : 'see list'}
+            </button>
+          </div>
         </div>
+
+        {showInternalList && (
+          <InternalExclusionsPanel
+            transactions={transactions}
+            included={includedInternal}
+            onToggle={(name) => setIncludedInternal(list => list.includes(name) ? list.filter(n => n !== name) : [...list, name])}
+          />
+        )}
 
         {/* KPIs */}
         <RiseUpKpis income={income} expense={expense} overseas={overseas} />
