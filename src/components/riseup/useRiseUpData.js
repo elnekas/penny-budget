@@ -14,7 +14,8 @@ export function useRiseUpData() {
       if (!res.ok) throw new Error('Failed to load RiseUp data');
       return res.json();
     },
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always'
   });
 
   const overridesQ = useQuery({
@@ -121,6 +122,8 @@ export function useRiseUpData() {
     saveOverride,
     saveRename,
     saveCategoryForName,
-    saveCategoryGroup
+    saveCategoryGroup,
+    refresh: snapshotQ.refetch,
+    isRefreshing: snapshotQ.isRefetching
   };
 }

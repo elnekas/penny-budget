@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
-import { ArrowLeft, Search, AlertTriangle, Loader2, PieChart } from 'lucide-react';
+import { ArrowLeft, Search, AlertTriangle, Loader2, PieChart, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
@@ -15,7 +15,7 @@ import RiseUpListControls from '@/components/riseup/RiseUpListControls';
 const selectCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 
 export default function RiseUpDashboard() {
-  const { snapshot, transactions, loading, error, saveOverride, saveRename, saveCategoryForName, saveCategoryGroup } = useRiseUpData();
+  const { snapshot, transactions, loading, error, saveOverride, saveRename, saveCategoryForName, saveCategoryGroup, refresh, isRefreshing } = useRiseUpData();
 
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState('all');
@@ -142,8 +142,16 @@ export default function RiseUpDashboard() {
           </Link>
           <div>
             <h1 className="text-lg font-bold text-slate-800">RiseUp Insights</h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 flex items-center gap-1.5">
               Live from RiseUp · updated {moment(snapshot.generated_at).format('D MMM, HH:mm')} · {transactions.length.toLocaleString()} transactions
+              <button
+                onClick={() => refresh()}
+                disabled={isRefreshing}
+                title="Refresh data"
+                className="text-slate-400 hover:text-emerald-600 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
             </p>
           </div>
           <Link to="/riseup-analytics" className="ml-auto">
