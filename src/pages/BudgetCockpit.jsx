@@ -117,6 +117,7 @@ export default function BudgetCockpit() {
         months={months}
         externals={externals}
         transfers={transfers}
+        monthLabels={snapshot?.month_labels}
       />
 
       <FixedExpensePanel transactions={transactions} month={selectedMonth} />

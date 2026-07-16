@@ -4,16 +4,34 @@ import { isBuffer, countsInMonth, monthlyILSForMonth } from '../externalIncomeUt
 // Last N complete months (excludes the current partial month)
 export const lastFullMonths = (months, n = 6) => months.slice(0, -1).slice(-n);
 
-// Average monthly spend per group over the given months (fixed + variable, excludes planned/ignored/internal)
-export function groupAverages(transactions, avgMonths) {
+const countable = (t) => !t.inc && !t.ignored && !t.planned && !isInternal(t.name);
+
+// Average monthly spend per group over the given months (fixed + variable)
+export function groupAverages(transactions, avgMonths, { fixedOnly = false } = {}) {
   const set = new Set(avgMonths);
   const totals = {};
   transactions.forEach(t => {
-    if (!set.has(t.m) || t.inc || t.ignored || t.planned || isInternal(t.name)) return;
+    if (!set.has(t.m) || !countable(t)) return;
+    if (fixedOnly && !t.fixed) return;
     totals[t.group] = (totals[t.group] || 0) + t.amt;
   });
   const div = avgMonths.length || 1;
   Object.keys(totals).forEach(k => { totals[k] = Math.round(totals[k] / div); });
+  return totals;
+}
+
+// Average monthly FIXED spend per group — the hard floor for any plan
+export const groupFixedAverages = (transactions, avgMonths) =>
+  groupAverages(transactions, avgMonths, { fixedOnly: true });
+
+// Actual spend per group in one specific month
+export function groupActualsForMonth(transactions, month) {
+  const totals = {};
+  transactions.forEach(t => {
+    if (t.m !== month || !countable(t)) return;
+    totals[t.group] = (totals[t.group] || 0) + t.amt;
+  });
+  Object.keys(totals).forEach(k => { totals[k] = Math.round(totals[k]); });
   return totals;
 }
 
@@ -31,6 +49,34 @@ export function incomeSourceOptions(transactions, avgMonths, externals, transfer
     options.push({ id: e.id, label: `🌍 ${e.source_name}`, avg: Math.round(total / div) });
   });
   return options.filter(o => o.avg > 0);
+}
+
+// What income actually arrived in one specific month, per source
+export function actualIncomeOptions(transactions, month, externals, transfers) {
+  const localTotal = transactions
+    .filter(t => t.m === month && t.inc && !t.ignored && !isInternal(t.name))
+    .reduce((s, t) => s + t.amt, 0);
+  const options = [];
+  if (localTotal > 0) options.push({ id: 'local', label: '🏦 Local bank income', avg: Math.round(localTotal) });
+  (externals || []).filter(e => !isBuffer(e) && countsInMonth(e, month, transfers)).forEach(e => {
+    const v = Math.round(monthlyILSForMonth(e, month, transfers));
+    if (v > 0) options.push({ id: e.id, label: `🌍 ${e.source_name}`, avg: v });
+  });
+  return options;
+}
+
+export const fmtMonth = (m) =>
+  new Date(m + '-01T00:00:00').toLocaleString('en', { month: 'short', year: 'numeric' });
+
+// The N months after the given 'YYYY-MM' month
+export function futureMonthsFrom(month, n = 6) {
+  const out = [];
+  let [y, mo] = month.split('-').map(Number);
+  for (let i = 0; i < n; i++) {
+    mo++; if (mo > 12) { mo = 1; y++; }
+    out.push(`${y}-${String(mo).padStart(2, '0')}`);
+  }
+  return out;
 }
 
 export const SLICE_COLORS = {
