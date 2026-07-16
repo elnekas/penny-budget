@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { fmt } from '@/components/riseup/riseupGroups';
 import { SLICE_COLORS } from './plannerUtils';
+import PlannerGroupDetail from './PlannerGroupDetail';
 
-export default function PlannerSliceRow({ slice, onChange, readOnly }) {
-  const { label, value, avg, status, min = 0 } = slice;
+export default function PlannerSliceRow({ slice, onChange, readOnly, transactions, month, avgMonths }) {
+  const { label, value, avg, status, min = 0, group } = slice;
+  const [expanded, setExpanded] = useState(false);
   const color = SLICE_COLORS[status];
   const max = Math.max(Math.round(avg * 2), value, 500);
   const deltaPct = avg ? Math.round((value / avg - 1) * 100) : 0;
 
   return (
     <div className="group rounded-xl px-3 py-2 hover:bg-slate-50 transition-colors">
-      <div className="flex items-center gap-2 text-xs mb-1">
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-2 text-xs mb-1 text-left"
+      >
         <span className="w-2.5 h-2.5 rounded-full shrink-0 transition-colors" style={{ background: color }} />
         <span className="flex-1 min-w-0 truncate font-medium text-slate-700">{label}</span>
         {min > 0 && !readOnly && (
@@ -24,7 +31,8 @@ export default function PlannerSliceRow({ slice, onChange, readOnly }) {
         </span>
         <span className="text-slate-400 w-14 text-right">avg {fmt(avg)}</span>
         <span className="font-bold w-16 text-right tabular-nums" style={{ color }}>{fmt(value)}</span>
-      </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
       {readOnly ? (
         <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
           <div className="h-full rounded-full transition-all"
@@ -47,6 +55,9 @@ export default function PlannerSliceRow({ slice, onChange, readOnly }) {
             style={{ accentColor: color }}
           />
         </div>
+      )}
+      {expanded && (
+        <PlannerGroupDetail transactions={transactions} month={month} avgMonths={avgMonths} group={group} />
       )}
     </div>
   );

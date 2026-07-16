@@ -1,0 +1,27 @@
+{
+  "name": "BudgetPlan",
+  "type": "object",
+  "properties": {
+    "month": {
+      "type": "string",
+      "description": "Month this plan applies to, YYYY-MM"
+    },
+    "allocations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Planned ILS amount per spending group"
+    },
+    "selected_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Income source ids counted in this month's budget"
+    }
+  },
+  "required": [
+    "month"
+  ]
+}

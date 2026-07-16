@@ -82,6 +82,14 @@ export default function BudgetCockpit() {
         onClose={() => setFocus(null)}
       />
 
+      <BudgetPlannerZone
+        transactions={transactions}
+        months={months}
+        externals={externals}
+        transfers={transfers}
+        monthLabels={snapshot?.month_labels}
+      />
+
       <div className="grid md:grid-cols-2 gap-5">
         <FreedomGauge
           stat={monthly[selectedMonth]}
@@ -111,14 +119,6 @@ export default function BudgetCockpit() {
           }}
         />
       </div>
-
-      <BudgetPlannerZone
-        transactions={transactions}
-        months={months}
-        externals={externals}
-        transfers={transfers}
-        monthLabels={snapshot?.month_labels}
-      />
 
       <FixedExpensePanel transactions={transactions} month={selectedMonth} />
 
