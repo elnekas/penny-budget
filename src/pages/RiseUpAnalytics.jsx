@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Terminal } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import DeepDiveTable from '@/components/riseup/analytics/DeepDiveTable';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
 import { cleanExpenses } from '@/components/riseup/analytics/analyticsUtils';
 import SpendingPie from '@/components/riseup/analytics/SpendingPie';
@@ -10,6 +12,7 @@ import CategoryCompare from '@/components/riseup/analytics/CategoryCompare';
 
 export default function RiseUpAnalytics() {
   const { snapshot, transactions, loading, error } = useRiseUpData();
+  const [deepDive, setDeepDive] = useState(false);
 
   const { expenses, categories } = useMemo(() => {
     const exp = cleanExpenses(transactions);
@@ -45,14 +48,28 @@ export default function RiseUpAnalytics() {
           <Link to="/riseup-dashboard" className="text-slate-400 hover:text-slate-700">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-slate-800">Spending Analytics</h1>
             <p className="text-xs text-slate-400">Explore, compare and discover your spending patterns</p>
           </div>
+          <Button
+            variant={deepDive ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDeepDive(!deepDive)}
+            className={`rounded-full gap-1.5 ${deepDive ? 'bg-slate-900 hover:bg-slate-800 text-emerald-400' : 'text-slate-700 border-slate-200'}`}
+          >
+            <Terminal className="w-4 h-4" />
+            Deep Dive
+          </Button>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto p-4 space-y-5 pb-16">
+        {deepDive && (
+          <DeepDiveTable expenses={expenses} months={months} monthLabels={monthLabels} />
+        )}
+
+        {!deepDive && (<>
         <div className="grid md:grid-cols-2 gap-5">
           <Card className="p-4 border-0 shadow-sm">
             <h3 className="font-semibold text-slate-800 mb-3 text-sm">🥧 Where does it all go?</h3>
@@ -72,6 +89,7 @@ export default function RiseUpAnalytics() {
           </p>
           <CategoryCompare expenses={expenses} months={months} categories={categories} />
         </Card>
+        </>)}
       </main>
     </div>
   );
