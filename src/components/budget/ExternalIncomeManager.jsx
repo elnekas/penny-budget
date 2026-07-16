@@ -49,7 +49,7 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-700 truncate">{e.source_name}</p>
                 <p className="text-xs text-slate-400">
-                  ${e.amount_usd.toLocaleString()} {e.frequency} · {e.spend_pct ?? 40}% to spend
+                  ${e.amount_usd.toLocaleString()} {e.frequency === 'one_time' ? 'one-time' : e.frequency} · {e.spend_pct ?? 40}% to spend
                   {e.start_date && ` · from ${e.start_date.slice(0, 7)}`}
                   {e.end_date && ` · until ${e.end_date.slice(0, 7)}`}
                   {e.deposit_day && ` · lands on the ${e.deposit_day}th`}
@@ -58,8 +58,8 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
                 {notLanded && <p className="text-[11px] text-slate-400">Hasn't landed yet this month</p>}
               </div>
               <div className="text-right text-xs">
-                <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}/mo spend</p>
-                <p className="text-teal-500">{fmt(mILS * (1 - (e.spend_pct ?? 40) / 100))}/mo reinvest</p>
+                <p className="font-semibold text-emerald-600">{fmt(mILS * ((e.spend_pct ?? 40) / 100))}{e.frequency === 'one_time' ? '' : '/mo'} spend</p>
+                <p className="text-teal-500">{fmt(mILS * (1 - (e.spend_pct ?? 40) / 100))}{e.frequency === 'one_time' ? '' : '/mo'} reinvest</p>
               </div>
               <button onClick={(ev) => { ev.stopPropagation(); onDelete(e.id); }} className="text-slate-300 hover:text-rose-500 p-1">
                 <Trash2 className="w-4 h-4" />
@@ -81,11 +81,12 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete }) {
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
               <option value="yearly">Yearly</option>
+              <option value="one_time">One-time deposit</option>
             </select>
             <input className={inputCls} type="number" step="0.01" placeholder="USD→ILS rate" value={form.exchange_rate} onChange={e => setForm({ ...form, exchange_rate: e.target.value })} />
             <input className={inputCls} type="number" min="0" max="100" placeholder="% to spend" value={form.spend_pct} onChange={e => setForm({ ...form, spend_pct: e.target.value })} />
             <div>
-              <label className="text-[11px] text-slate-500">Started on</label>
+              <label className="text-[11px] text-slate-500">{form.frequency === 'one_time' ? 'Deposit date' : 'Started on'}</label>
               <input className={inputCls} type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
             </div>
             <div>

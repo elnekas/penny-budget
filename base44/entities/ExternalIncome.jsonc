@@ -15,10 +15,11 @@
       "enum": [
         "monthly",
         "quarterly",
-        "yearly"
+        "yearly",
+        "one_time"
       ],
       "default": "monthly",
-      "description": "How often this income arrives"
+      "description": "How often this income arrives (one_time = single deposit, counted only in its start_date month)"
     },
     "exchange_rate": {
       "type": "number",
@@ -33,7 +34,7 @@
     "start_date": {
       "type": "string",
       "format": "date",
-      "description": "Date this income source began \u2014 it is excluded from all accounting before this month"
+      "description": "Date this income source began (or the deposit date for one_time) \u2014 excluded from all accounting before this month"
     },
     "end_date": {
       "type": "string",

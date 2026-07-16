@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
     const extLines = externals.filter((e) => e.active !== false).map((e) => {
       const monthlyILS = (e.amount_usd * (e.exchange_rate || 3.7)) / (FREQ_DIV[e.frequency] || 1);
       const pct = (e.spend_pct ?? 40) / 100;
-      const started = (!e.start_date || e.start_date.slice(0, 7) <= nowMonth) && (!e.end_date || e.end_date.slice(0, 7) >= nowMonth);
+      const started = e.frequency === 'one_time'
+        ? (e.start_date || '').slice(0, 7) === nowMonth
+        : (!e.start_date || e.start_date.slice(0, 7) <= nowMonth) && (!e.end_date || e.end_date.slice(0, 7) >= nowMonth);
       if (started) {
         extSpend += monthlyILS * pct;
         extReinvest += monthlyILS * (1 - pct);
@@ -109,7 +111,7 @@ Use null for general strategy talk with no specific visual. Month codes and cate
 
 "action" lets you MAKE REAL CHANGES to the user's data. Use it ONLY when the user clearly asks for a change, and confirm exactly what you did in your reply:
 - {"type":"set_goal","category":"<exact category name from the data>","monthly_target":<number, ILS>} — set or update a monthly spending ceiling (e.g. "Cap dining at 1500")
-- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly","exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"end_date":"YYYY-MM-DD" (optional, when it ends),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
+- {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly"|"one_time" (one_time = a single deposit; set start_date to the deposit date),"exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"end_date":"YYYY-MM-DD" (optional, when it ends),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
 - {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
 If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
@@ -150,7 +152,7 @@ If the request is ambiguous (unknown category or merchant), ask for clarificatio
       await base44.entities.ExternalIncome.create({
         source_name: act.source_name,
         amount_usd: act.amount_usd,
-        frequency: FREQ_DIV[act.frequency] ? act.frequency : 'monthly',
+        frequency: ['monthly', 'quarterly', 'yearly', 'one_time'].includes(act.frequency) ? act.frequency : 'monthly',
         exchange_rate: act.exchange_rate || 3.7,
         spend_pct: act.spend_pct ?? 40,
         active: true,
