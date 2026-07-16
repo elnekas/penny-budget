@@ -7,6 +7,7 @@ import ExternalIncomeManager from '@/components/budget/ExternalIncomeManager';
 import FixedExpensePanel from '@/components/budget/FixedExpensePanel';
 import CockpitPie from '@/components/budget/CockpitPie';
 import FocusStage from '@/components/budget/FocusStage';
+import NetWorthLedger from '@/components/budget/NetWorthLedger';
 import { PennyActionContext } from '@/components/finance/FinanceShell';
 
 const selectCls = "px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
@@ -130,6 +131,8 @@ export default function BudgetCockpit() {
           onDeleteGoal={(id) => deleteGoal.mutate(id)}
         />
       </div>
+
+      <NetWorthLedger />
     </main>
   );
 }

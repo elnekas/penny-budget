@@ -1,0 +1,51 @@
+{
+  "name": "NetWorthItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the asset or liability (e.g. Leumi checking, US brokerage, Apartment)"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "investment",
+        "property",
+        "pension",
+        "vehicle",
+        "other",
+        "debt"
+      ],
+      "default": "cash",
+      "description": "Type of holding \u2014 debt is subtracted from net worth"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "ILS",
+        "USD"
+      ],
+      "default": "ILS",
+      "description": "Currency the value is held in"
+    },
+    "value": {
+      "type": "number",
+      "description": "Current value (always positive \u2014 debts are subtracted automatically)"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "default": 3.7,
+      "description": "USD to ILS rate used when currency is USD"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    }
+  },
+  "required": [
+    "name",
+    "kind",
+    "value"
+  ]
+}
