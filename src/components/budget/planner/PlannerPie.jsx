@@ -47,6 +47,12 @@ export default function PlannerPie({ slices, savings, budget, caption = 'Budget'
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="text-[10px] uppercase tracking-widest text-slate-400">{caption}</span>
         <span className="text-xl font-bold text-slate-800">{fmt(budget)}</span>
+        <span className="text-[10px] text-slate-500">
+          allocated <b className="text-slate-700">{fmt(slices.reduce((s, x) => s + x.value, 0))}</b>
+        </span>
+        <span className="text-[10px] text-slate-400">
+          avg month {fmt(slices.reduce((s, x) => s + (x.avg || 0), 0))}
+        </span>
         {over > 0 ? (
           <span className="mt-0.5 text-xs font-semibold text-rose-500">{fmt(over)} {overWord === 'over' ? 'over' : 'over goal'}</span>
         ) : savings > 0 ? (
