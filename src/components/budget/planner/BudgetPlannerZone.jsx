@@ -23,15 +23,15 @@ const LEGEND = [
 const selectCls = "px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
 const pillCls = (active) => `px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${active ? 'bg-emerald-100 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`;
 
-export default function BudgetPlannerZone({ transactions, months, externals, transfers, monthLabels }) {
+export default function BudgetPlannerZone({ transactions, months, externals, transfers, monthLabels, bufferDraw = 0 }) {
   const qc = useQueryClient();
   const currentMonth = months[months.length - 1];
   const avgMonths = useMemo(() => lastFullMonths(months, 6), [months]);
   const averages = useMemo(() => groupAverages(transactions, avgMonths), [transactions, avgMonths]);
   const fixedAvg = useMemo(() => groupFixedAverages(transactions, avgMonths), [transactions, avgMonths]);
   const incomeOptions = useMemo(
-    () => incomeSourceOptions(transactions, avgMonths, externals, transfers),
-    [transactions, avgMonths, externals, transfers]
+    () => incomeSourceOptions(transactions, avgMonths, externals, transfers, bufferDraw),
+    [transactions, avgMonths, externals, transfers, bufferDraw]
   );
   const monthOptions = useMemo(
     () => currentMonth ? [...months, ...futureMonthsFrom(currentMonth, 6)] : [],

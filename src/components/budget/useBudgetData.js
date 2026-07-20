@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useRiseUpData } from '@/components/riseup/useRiseUpData';
-import { countsInMonth, hasLanded, monthlyILSForMonth, bufferMonthlyILSForMonth, isBuffer } from './externalIncomeUtils';
+import { countsInMonth, hasLanded, monthlyILSForMonth, bufferIncomeILSForMonth, isBuffer } from './externalIncomeUtils';
 
 export function useBudgetData() {
   const qc = useQueryClient();
@@ -18,6 +18,19 @@ export function useBudgetData() {
   const transfersQ = useQuery({
     queryKey: ['deposit-transfers'],
     queryFn: () => base44.entities.DepositTransfer.list('-created_date', 500)
+  });
+  const bufferPlanQ = useQuery({
+    queryKey: ['buffer-plan'],
+    queryFn: () => base44.entities.BufferPlan.list('-created_date', 1)
+  });
+
+  const saveBufferDraw = useMutation({
+    mutationFn: async (monthly_draw_ils) => {
+      const existing = bufferPlanQ.data?.[0];
+      if (existing) return base44.entities.BufferPlan.update(existing.id, { monthly_draw_ils });
+      return base44.entities.BufferPlan.create({ monthly_draw_ils });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['buffer-plan'] })
   });
 
   const saveExternal = useMutation({
@@ -75,6 +88,7 @@ export function useBudgetData() {
   // ---- External (USD) income converted to monthly ILS ----
   const externals = extQ.data || [];
   const transfers = transfersQ.data || [];
+  const bufferDraw = bufferPlanQ.data?.[0]?.monthly_draw_ils || 0;
   const externalForMonth = (month) => {
     let spend = 0, reinvest = 0;
     externals.filter(e => !isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers)).forEach(e => {
@@ -83,8 +97,8 @@ export function useBudgetData() {
       spend += mILS * pct;
       reinvest += mILS * (1 - pct);
     });
-    // Buffer holdings only draw via actual logged transfers
-    const buffer = bufferMonthlyILSForMonth(externals, month, transfers);
+    // Buffer pool: actual draws for past months, planned monthly draw for current & future
+    const buffer = bufferIncomeILSForMonth(externals, month, transfers, bufferDraw);
     return { spend, reinvest, buffer };
   };
 
@@ -107,6 +121,8 @@ export function useBudgetData() {
     externals,
     externalForMonth,
     transfers,
+    bufferDraw,
+    saveBufferDraw,
     goals: goalsQ.data || [],
     saveExternal,
     deleteExternal,
@@ -115,6 +131,6 @@ export function useBudgetData() {
     updateTransfer,
     saveGoal,
     deleteGoal,
-    loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading || transfersQ.isLoading
+    loadingBudget: riseup.loading || extQ.isLoading || goalsQ.isLoading || transfersQ.isLoading || bufferPlanQ.isLoading
   };
 }

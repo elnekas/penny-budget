@@ -15,7 +15,7 @@ const selectCls = "px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm
 export default function BudgetCockpit() {
   const {
     snapshot, transactions, monthly, months, categoryAvg,
-    externals, externalForMonth, transfers,
+    externals, externalForMonth, transfers, bufferDraw, saveBufferDraw,
     goals, saveExternal, deleteExternal, saveTransfer, deleteTransfer, updateTransfer, saveOverride, saveGoal, deleteGoal, loadingBudget, error
   } = useBudgetData();
 
@@ -88,6 +88,7 @@ export default function BudgetCockpit() {
         externals={externals}
         transfers={transfers}
         monthLabels={snapshot?.month_labels}
+        bufferDraw={bufferDraw}
       />
 
       <div className="grid md:grid-cols-2 gap-5">
@@ -99,6 +100,8 @@ export default function BudgetCockpit() {
         />
         <ExternalIncomeManager
           externals={externals}
+          bufferDraw={bufferDraw}
+          onSaveBufferDraw={(v) => saveBufferDraw.mutate(v)}
           onSave={(p) => saveExternal.mutate(p)}
           onDelete={(id) => deleteExternal.mutate(id)}
           transfers={transfers}

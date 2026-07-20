@@ -100,10 +100,40 @@ export const externalMonthlyILSForMonth = (externals, month, transfers) =>
     .filter((e) => !isBuffer(e) && countsInMonth(e, month, transfers) && hasLanded(e, month, transfers))
     .reduce((s, e) => s + monthlyILSForMonth(e, month, transfers), 0);
 
-// Buffers are passive holdings — they only draw when an actual transfer/installment is logged against them
+const bufferIds = (externals) => new Set((externals || []).filter(isBuffer).map(e => e.id));
+
+// All buffer draws logged in a month (linked or manual)
 export const bufferMonthlyILSForMonth = (externals, month, transfers) => {
-  const ids = new Set((externals || []).filter(isBuffer).map(e => e.id));
+  const ids = bufferIds(externals);
   return (transfers || [])
     .filter(t => ids.has(t.income_id) && (t.date || '').slice(0, 7) === month)
     .reduce((s, t) => s + (t.amount_ils || 0), 0);
 };
+
+// Buffer draws NOT already visible in the RiseUp cash flow (avoids double-counting linked deposits)
+export const bufferUncountedILSForMonth = (externals, month, transfers) => {
+  const ids = bufferIds(externals);
+  return (transfers || [])
+    .filter(t => ids.has(t.income_id) && !t.counted_in_cashflow && (t.date || '').slice(0, 7) === month)
+    .reduce((s, t) => s + (t.amount_ils || 0), 0);
+};
+
+// Total USD left in the buffer pool across all buffer holdings
+export function bufferPoolUSD(externals, transfers) {
+  return (externals || []).filter(isBuffer).reduce((s, e) => {
+    const drawn = (transfers || [])
+      .filter(t => t.income_id === e.id)
+      .reduce((a, t) => a + (t.amount_ils || 0), 0);
+    return s + e.amount_usd - drawn / (e.exchange_rate || 3.7);
+  }, 0);
+}
+
+// ILS the buffer pool contributes as monthly income:
+// past months = actual logged draws; current & future = at least the planned monthly draw.
+// Draws already counted in the cash flow are subtracted so nothing double-counts.
+export function bufferIncomeILSForMonth(externals, month, transfers, plannedDraw = 0) {
+  const all = bufferMonthlyILSForMonth(externals, month, transfers);
+  const uncounted = bufferUncountedILSForMonth(externals, month, transfers);
+  const gross = month && month >= thisMonth() ? Math.max(all, plannedDraw) : all;
+  return Math.max(gross - (all - uncounted), 0);
+}

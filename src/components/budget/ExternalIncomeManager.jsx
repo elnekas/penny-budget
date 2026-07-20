@@ -5,12 +5,13 @@ import { Plus, Trash2, Globe, ArrowLeftRight, PiggyBank } from 'lucide-react';
 import { fmt } from '@/components/riseup/riseupGroups';
 import { monthlyILSForMonth, countsInMonth, hasLanded, isPot, potRemainingUSD } from './externalIncomeUtils';
 import PotTransferTracker from './PotTransferTracker';
+import BufferPoolBar from './BufferPoolBar';
 
 const inputCls = "w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40";
 const empty = { source_name: '', amount_usd: '', frequency: 'monthly', exchange_rate: 3.7, spend_pct: 40, start_date: '', end_date: '', deposit_day: '', monthly_slice_usd: '', kind: 'income' };
 const currentMonth = new Date().toISOString().slice(0, 7);
 
-export default function ExternalIncomeManager({ externals, onSave, onDelete, transfers = [], candidates = [], onSaveTransfer, onDeleteTransfer, onToggleCashflow }) {
+export default function ExternalIncomeManager({ externals, onSave, onDelete, transfers = [], candidates = [], onSaveTransfer, onDeleteTransfer, onToggleCashflow, bufferDraw = 0, onSaveBufferDraw }) {
   const [form, setForm] = useState(null);
   const [openPot, setOpenPot] = useState(null);
 
@@ -139,7 +140,9 @@ export default function ExternalIncomeManager({ externals, onSave, onDelete, tra
           <Plus className="w-4 h-4" /> Add
         </Button>
       </div>
-      <p className="text-xs text-slate-400 mb-3">Holdings that affect nothing until you log an actual draw (installment) against them via the ⇄ tracker</p>
+      <p className="text-xs text-slate-400 mb-3">One USD pool — set a planned monthly draw below and log the actual shekel deposits via the ⇄ tracker</p>
+
+      <BufferPoolBar buffers={buffers} transfers={transfers} bufferDraw={bufferDraw} onSave={onSaveBufferDraw} />
 
       <div className="space-y-2">
         {buffers.map(renderRow)}

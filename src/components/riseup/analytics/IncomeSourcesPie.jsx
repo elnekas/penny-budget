@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { fmt } from '../riseupGroups';
 import { PALETTE, totalsBy } from './analyticsUtils';
-import { monthlyILSForMonth, countsInMonth, hasLanded, isBuffer } from '@/components/budget/externalIncomeUtils';
+import { monthlyILSForMonth, countsInMonth, hasLanded, isBuffer, bufferUncountedILSForMonth } from '@/components/budget/externalIncomeUtils';
 
 const OVERSEAS_SHADES = ['#10b981', '#059669', '#34d399', '#047857', '#6ee7b7', '#065f46'];
 
@@ -26,6 +26,9 @@ export default function IncomeSourcesPie({ transactions, months, monthLabels, ex
         s + (countsInMonth(e, m, transfers) && hasLanded(e, m, transfers) ? monthlyILSForMonth(e, m, transfers) : 0), 0);
       if (amt > 0) rows.push({ name: `🌎 ${e.source_name}`, value: Math.round(amt), color: OVERSEAS_SHADES[i % OVERSEAS_SHADES.length] });
     });
+    // Savings buffer draws not already visible as RiseUp deposits
+    const bufAmt = monthList.reduce((s, m) => s + bufferUncountedILSForMonth(externals, m, transfers), 0);
+    if (bufAmt > 0) rows.push({ name: '💵 Savings buffer draw', value: Math.round(bufAmt), color: '#0ea5e9' });
     rows.sort((a, b) => b.value - a.value);
     return { allRows: rows.filter(r => r.value > 0) };
   }, [transactions, month, months, externals, transfers]);

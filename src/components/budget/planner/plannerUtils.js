@@ -1,4 +1,4 @@
-import { isBuffer, countsInMonth, monthlyILSForMonth } from '../externalIncomeUtils';
+import { bufferMonthlyILSForMonth } from '../externalIncomeUtils';
 
 // Last N complete months (excludes the current partial month)
 export const lastFullMonths = (months, n = 6) => months.slice(0, -1).slice(-n);
@@ -34,33 +34,33 @@ export function groupActualsForMonth(transactions, month) {
   return totals;
 }
 
-// Selectable income sources with their 6-month monthly averages
-export function incomeSourceOptions(transactions, avgMonths, externals, transfers) {
+// Income transactions linked to a pot/buffer transfer are counted via the buffer, not as local income
+const linkedTxIds = (transfers) => new Set((transfers || []).map(t => t.tx_id).filter(Boolean));
+
+// Selectable income sources: local bank income + the savings buffer monthly draw
+// (overseas income feeds the USD buffer pool, so it's represented by the draw — not listed separately)
+export function incomeSourceOptions(transactions, avgMonths, externals, transfers, bufferDraw = 0) {
   const set = new Set(avgMonths);
   const div = avgMonths.length || 1;
+  const linked = linkedTxIds(transfers);
   const localTotal = transactions
-    .filter(t => set.has(t.m) && t.inc && !t.ignored && !t.internal)
+    .filter(t => set.has(t.m) && t.inc && !t.ignored && !t.internal && !linked.has(t.id))
     .reduce((s, t) => s + t.amt, 0);
   const options = [{ id: 'local', label: '🏦 Local bank income', avg: Math.round(localTotal / div) }];
-  (externals || []).filter(e => !isBuffer(e)).forEach(e => {
-    const total = avgMonths.reduce((s, m) =>
-      countsInMonth(e, m, transfers) ? s + monthlyILSForMonth(e, m, transfers) : s, 0);
-    options.push({ id: e.id, label: `🌍 ${e.source_name}`, avg: Math.round(total / div) });
-  });
+  if (bufferDraw > 0) options.push({ id: 'buffer', label: '💵 Savings buffer draw', avg: Math.round(bufferDraw) });
   return options.filter(o => o.avg > 0);
 }
 
 // What income actually arrived in one specific month, per source
 export function actualIncomeOptions(transactions, month, externals, transfers) {
+  const linked = linkedTxIds(transfers);
   const localTotal = transactions
-    .filter(t => t.m === month && t.inc && !t.ignored && !t.internal)
+    .filter(t => t.m === month && t.inc && !t.ignored && !t.internal && !linked.has(t.id))
     .reduce((s, t) => s + t.amt, 0);
   const options = [];
   if (localTotal > 0) options.push({ id: 'local', label: '🏦 Local bank income', avg: Math.round(localTotal) });
-  (externals || []).filter(e => !isBuffer(e) && countsInMonth(e, month, transfers)).forEach(e => {
-    const v = Math.round(monthlyILSForMonth(e, month, transfers));
-    if (v > 0) options.push({ id: e.id, label: `🌍 ${e.source_name}`, avg: v });
-  });
+  const buf = Math.round(bufferMonthlyILSForMonth(externals, month, transfers));
+  if (buf > 0) options.push({ id: 'buffer', label: '💵 Savings buffer draw', avg: buf });
   return options;
 }
 

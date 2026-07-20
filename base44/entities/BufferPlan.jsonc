@@ -1,0 +1,13 @@
+{
+  "name": "BufferPlan",
+  "type": "object",
+  "properties": {
+    "monthly_draw_ils": {
+      "type": "number",
+      "description": "Planned ILS drawn from the USD savings buffer pool into the shekel account each month \u2014 counted as monthly income"
+    }
+  },
+  "required": [
+    "monthly_draw_ils"
+  ]
+}
