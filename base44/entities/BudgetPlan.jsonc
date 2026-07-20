@@ -19,6 +19,13 @@
         "type": "string"
       },
       "description": "Income source ids counted in this month's budget"
+    },
+    "budget_goal": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Specific ILS amount to justify this month \u2014 can be less than the total income (the rest is savings)"
     }
   },
   "required": [

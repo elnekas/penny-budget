@@ -43,10 +43,10 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
     queryFn: () => base44.entities.BudgetPlan.list('-created_date', 200)
   });
   const savePlan = useMutation({
-    mutationFn: async ({ month, allocations, selected_sources }) => {
+    mutationFn: async ({ month, allocations, selected_sources, budget_goal }) => {
       const existing = (plansQ.data || []).find(p => p.month === month);
-      if (existing) return base44.entities.BudgetPlan.update(existing.id, { allocations, selected_sources });
-      return base44.entities.BudgetPlan.create({ month, allocations, selected_sources });
+      if (existing) return base44.entities.BudgetPlan.update(existing.id, { allocations, selected_sources, budget_goal });
+      return base44.entities.BudgetPlan.create({ month, allocations, selected_sources, budget_goal });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['budget-plans'] })
   });
@@ -54,6 +54,7 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
   const [planMonth, setPlanMonth] = useState(null);
   const [allocByMonth, setAllocByMonth] = useState({});
   const [selByMonth, setSelByMonth] = useState({});
+  const [goalByMonth, setGoalByMonth] = useState({});
   const [pastView, setPastView] = useState('actual');
 
   const month = planMonth || currentMonth;
@@ -115,12 +116,19 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
     () => showActual ? actualIncomeOptions(transactions, month, externals, transfers) : incomeOptions,
     [showActual, transactions, month, externals, transfers, incomeOptions]
   );
-  const budget = showActual
+  const incomeTotal = showActual
     ? incomeShown.reduce((s, o) => s + o.avg, 0)
     : incomeShown.filter(o => selected.includes(o.id)).reduce((s, o) => s + o.avg, 0);
+  // Budget goal: a specific amount to justify — can be less than the income (the rest is savings)
+  const goal = showActual ? null : (goalByMonth[month] !== undefined ? goalByMonth[month] : plan?.budget_goal ?? null);
+  const budget = goal != null && goal > 0 ? Math.min(goal, incomeTotal) : incomeTotal;
 
   const allocated = slices.reduce((s, x) => s + x.value, 0);
   const savings = budget - allocated;
+  const avgTotal = Object.values(averages).reduce((s, v) => s + v, 0);
+  // The golden slice: how much less than an average month this plan spends
+  const goldAmt = showActual || mode === 'past' ? savings : Math.round(avgTotal - allocated);
+  const overGoal = savings < 0;
 
   const setSlice = (group, value) =>
     setAllocByMonth(prev => ({ ...prev, [month]: { ...(prev[month] || {}), [group]: value } }));
@@ -128,20 +136,23 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
     setAllocByMonth(prev => ({ ...prev, [month]: Object.fromEntries(Object.keys(averages).map(g => [g, Math.max(averages[g], floorFor(g))])) }));
   const toggleSource = (id) =>
     setSelByMonth(prev => ({ ...prev, [month]: selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id] }));
+  const setGoal = (v) =>
+    setGoalByMonth(prev => ({ ...prev, [month]: v }));
 
   // Auto-save: persist the full plan shortly after any edit (present & future months)
-  const dirty = !!(allocByMonth[month] || selByMonth[month]);
+  const dirty = !!(allocByMonth[month] || selByMonth[month] || goalByMonth[month] !== undefined);
   useEffect(() => {
     if (!dirty || mode === 'past' || plansQ.isLoading) return;
     const timer = setTimeout(() => {
       savePlan.mutate({
         month,
         allocations: Object.fromEntries(slices.map(s => [s.group, s.value])),
-        selected_sources: selected
+        selected_sources: selected,
+        budget_goal: goal != null && goal > 0 ? goal : null
       });
     }, 800);
     return () => clearTimeout(timer);
-  }, [allocByMonth, selByMonth, month]);
+  }, [allocByMonth, selByMonth, goalByMonth, month]);
 
   if (!avgMonths.length || !Object.keys(averages).length) {
     return (
@@ -199,6 +210,9 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
         selected={selected}
         onToggle={toggleSource}
         budget={budget}
+        incomeTotal={incomeTotal}
+        goal={goal}
+        onGoalChange={mode === 'past' ? undefined : setGoal}
         readOnly={mode === 'past'}
         title={showActual ? `Where the money actually came from · ${mLabel(month)}` : undefined}
         suffix={showActual ? '' : '/mo'}
@@ -209,10 +223,12 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
         <div className="md:col-span-2 flex flex-col">
           <PlannerPie
             slices={slices}
-            savings={savings}
+            savings={goldAmt}
+            over={overGoal ? -savings : 0}
             budget={budget}
             caption={showActual ? 'Income' : 'Budget'}
-            savedWord={showActual ? 'kept' : 'saved'}
+            savedWord={showActual ? 'kept' : mode === 'past' ? 'saved' : 'saved vs avg'}
+            overWord={showActual || mode === 'past' ? 'over' : 'above avg'}
           />
           <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
             {LEGEND.map(l => (
@@ -233,10 +249,10 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
             ))}
           </div>
           <div className={`mt-3 rounded-xl px-4 py-3 text-xs font-medium flex items-center justify-between ${
-            savings > 0
-              ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-100'
-              : savings < 0
-                ? 'bg-rose-50 text-rose-600 border border-rose-100'
+            overGoal
+              ? 'bg-rose-50 text-rose-600 border border-rose-100'
+              : goldAmt > 0
+                ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-100'
                 : 'bg-blue-50 text-blue-600 border border-blue-100'
           }`}>
             <span>
@@ -244,9 +260,14 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
                 ? (savings > 0 ? '✨ You actually kept this much of your income' : savings < 0 ? 'You spent more than the income that arrived' : 'Income and spend exactly balanced')
                 : mode === 'past'
                   ? (savings > 0 ? '✨ This plan left this much for savings' : savings < 0 ? 'This plan exceeded the budget' : 'This plan was fully allocated')
-                  : (savings > 0 ? '✨ Planned savings — the golden slice of your pie' : savings < 0 ? 'Your plan exceeds the budget — trim some slices' : 'Fully allocated — every shekel has a job')}
+                  : (overGoal ? 'Your plan exceeds your budget goal — trim some slices'
+                    : goldAmt > 0 ? '✨ Saved vs your average month — the golden slice of your pie'
+                    : goldAmt < 0 ? 'This plan spends more than your average month'
+                    : 'Matching your average month — every shekel has a job')}
             </span>
-            <span className="text-sm font-bold">{fmt(Math.abs(savings))}{savings < 0 ? ' over' : ''}</span>
+            <span className="text-sm font-bold">
+              {overGoal ? `${fmt(-savings)} over` : fmt(Math.abs(goldAmt))}
+            </span>
           </div>
         </div>
       </div>

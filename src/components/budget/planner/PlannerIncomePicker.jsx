@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { fmt } from '@/components/riseup/riseupGroups';
 
-export default function PlannerIncomePicker({ options, selected, onToggle, budget, readOnly, title, suffix = '/mo', budgetCaption }) {
+const goalInputCls = "w-24 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-right focus:outline-none focus:ring-2 focus:ring-emerald-500/40";
+
+export default function PlannerIncomePicker({ options, selected, onToggle, budget, readOnly, title, suffix = '/mo', budgetCaption, incomeTotal, goal, onGoalChange }) {
+  const [goalVal, setGoalVal] = useState(null);
+  const commitGoal = () => {
+    if (goalVal === null) return;
+    const n = Number(goalVal);
+    onGoalChange(goalVal === '' || !n || n <= 0 ? null : Math.round(n));
+    setGoalVal(null);
+  };
   return (
     <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-emerald-50/60 border border-slate-100 p-4">
       <div className="flex items-center justify-between mb-2">
@@ -32,11 +41,29 @@ export default function PlannerIncomePicker({ options, selected, onToggle, budge
           );
         })}
       </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-slate-800">{fmt(budget)}</span>
-        <span className="text-xs text-slate-400">
-          {budgetCaption || 'monthly budget backed by the selected sources'}
-        </span>
+      <div className="mt-3 flex items-end justify-between gap-3 flex-wrap">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-slate-800">{fmt(budget)}</span>
+          <span className="text-xs text-slate-400">
+            {budgetCaption || (goal
+              ? `budget goal · of ${fmt(incomeTotal)} income available`
+              : 'monthly budget backed by the selected sources')}
+          </span>
+        </div>
+        {!readOnly && onGoalChange && (
+          <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+            🎯 Budget goal ₪
+            <input
+              className={goalInputCls}
+              type="number"
+              value={goalVal ?? (goal || '')}
+              placeholder={String(incomeTotal || '')}
+              onChange={e => setGoalVal(e.target.value)}
+              onBlur={commitGoal}
+              onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+            />
+          </label>
+        )}
       </div>
     </div>
   );

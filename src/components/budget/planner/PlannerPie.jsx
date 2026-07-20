@@ -20,7 +20,7 @@ const renderLabel = (props) => {
   );
 };
 
-export default function PlannerPie({ slices, savings, budget, caption = 'Budget', savedWord = 'saved' }) {
+export default function PlannerPie({ slices, savings, budget, caption = 'Budget', savedWord = 'saved', over = 0, overWord = 'over' }) {
   const data = [
     ...slices.map(s => ({ name: s.label, emoji: s.emoji, value: s.value, color: SLICE_COLORS[s.status] })),
     ...(savings > 0 ? [{ name: '✨ Savings', emoji: '✨', value: savings, color: 'url(#plannerGold)' }] : [])
@@ -47,12 +47,13 @@ export default function PlannerPie({ slices, savings, budget, caption = 'Budget'
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="text-[10px] uppercase tracking-widest text-slate-400">{caption}</span>
         <span className="text-xl font-bold text-slate-800">{fmt(budget)}</span>
-        {savings > 0 && (
+        {over > 0 ? (
+          <span className="mt-0.5 text-xs font-semibold text-rose-500">{fmt(over)} {overWord === 'over' ? 'over' : 'over goal'}</span>
+        ) : savings > 0 ? (
           <span className="mt-0.5 text-xs font-semibold text-amber-600">✨ {fmt(savings)} {savedWord}</span>
-        )}
-        {savings < 0 && (
-          <span className="mt-0.5 text-xs font-semibold text-rose-500">{fmt(-savings)} over</span>
-        )}
+        ) : savings < 0 ? (
+          <span className="mt-0.5 text-xs font-semibold text-rose-500">{fmt(-savings)} {overWord}</span>
+        ) : null}
       </div>
     </div>
   );
