@@ -111,7 +111,7 @@ export function futureMonthsFrom(month, n = 6) {
 export const SLICE_COLORS = {
   blue:  '#3b82f6', // within 10% of average
   green: '#10b981', // trimmed >10% below average
-  red:   '#ef4444', // pushed >10% above average
+  red:   '#a855f7', // pushed >10% above average (purple — informative, not guilt-inducing)
   gold:  '#f59e0b'  // savings gap
 };
 
