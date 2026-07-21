@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { RotateCcw, Check, Loader2 } from 'lucide-react';
 import { GROUPS, fmt } from '@/components/riseup/riseupGroups';
 import {
-  lastFullMonths, groupAverages, groupFixedAverages, groupActualsForMonth,
+  lastFullMonths, groupAverages, groupFixedAverages, groupActualsForMonth, expectedFixedByGroup,
   incomeSourceOptions, actualIncomeOptions, futureMonthsFrom, fmtMonth,
   SLICE_COLORS, sliceStatus
 } from './plannerUtils';
@@ -73,12 +73,19 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
     [transactions, month, mode]
   );
 
-  // Hard floor per group: fixed costs always, plus what's already spent in the live month
+  // Expected recurring fixed charges that haven't hit yet this month
+  const expectedFixed = useMemo(
+    () => mode === 'current' ? expectedFixedByGroup(transactions, month, avgMonths) : {},
+    [transactions, month, avgMonths, mode]
+  );
+
+  // Hard floor per group — future: average fixed costs; live month: what's already
+  // spent plus fixed bills still expected (matches the dropdown breakdown exactly)
   const floorFor = (g) => mode === 'future'
     ? (fixedAvg[g] || 0)
     : mode === 'past'
       ? 0
-      : Math.max(fixedAvg[g] || 0, actuals[g] || 0);
+      : (actuals[g] || 0) + (expectedFixed[g]?.total || 0);
 
   const showActual = mode === 'past' && pastView === 'actual';
 
@@ -110,7 +117,7 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
           status: sliceStatus(value, avg)
         };
       });
-  }, [averages, fixedAvg, actuals, alloc, mode, showActual]);
+  }, [averages, fixedAvg, actuals, expectedFixed, alloc, mode, showActual]);
 
   const incomeShown = useMemo(
     () => showActual ? actualIncomeOptions(transactions, month, externals, transfers) : incomeOptions,
@@ -178,7 +185,7 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
             {mode === 'past' && (showActual
               ? `What actually happened in ${mLabel(month)} vs your ${avgMonths.length}-month averages`
               : `What you budgeted for ${mLabel(month)}`)}
-            {mode === 'current' && `Live month — plan floors are locked at what you've already spent · auto-saves`}
+            {mode === 'current' && `Live month — plan floors are locked at spent + fixed bills still to come · auto-saves`}
             {mode === 'future' && `Planning ${mLabel(month)} against your last ${avgMonths.length}-month averages · auto-saves`}
           </p>
         </div>

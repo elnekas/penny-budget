@@ -23,6 +23,36 @@ export function groupAverages(transactions, avgMonths, { fixedOnly = false } = {
 export const groupFixedAverages = (transactions, avgMonths) =>
   groupAverages(transactions, avgMonths, { fixedOnly: true });
 
+// Recurring fixed items (by name) not yet charged in the given month.
+// Returns { [group]: { total, items: [{ name, amt }] } } — the single source of truth
+// used by both the plan floors and the per-group detail dropdown.
+export function expectedFixedByGroup(transactions, month, avgMonths) {
+  const set = new Set(avgMonths);
+  const minMonths = Math.max(2, Math.ceil(avgMonths.length / 2));
+  const spentByGroup = {};
+  transactions.forEach(t => {
+    if (t.m !== month || !countable(t)) return;
+    (spentByGroup[t.group] = spentByGroup[t.group] || new Set()).add(t.name);
+  });
+  const agg = {};
+  transactions.forEach(t => {
+    if (!set.has(t.m) || !t.fixed || !countable(t)) return;
+    const g = agg[t.group] = agg[t.group] || {};
+    const e = g[t.name] = g[t.name] || { total: 0, months: new Set() };
+    e.total += t.amt;
+    e.months.add(t.m);
+  });
+  const out = {};
+  Object.entries(agg).forEach(([group, names]) => {
+    const items = Object.entries(names)
+      .filter(([name, v]) => !(spentByGroup[group]?.has(name)) && v.months.size >= minMonths)
+      .map(([name, v]) => ({ name, amt: Math.round(v.total / v.months.size) }))
+      .sort((a, b) => b.amt - a.amt);
+    out[group] = { total: items.reduce((s, i) => s + i.amt, 0), items };
+  });
+  return out;
+}
+
 // Actual spend per group in one specific month
 export function groupActualsForMonth(transactions, month) {
   const totals = {};

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { fmt } from '@/components/riseup/riseupGroups';
+import { expectedFixedByGroup } from './plannerUtils';
 
 const countable = (t) => !t.inc && !t.ignored && !t.planned && !t.internal;
 
@@ -8,7 +9,6 @@ export default function PlannerGroupDetail({ transactions, month, avgMonths, gro
     const spent = transactions
       .filter(t => t.m === month && t.group === group && countable(t))
       .sort((a, b) => (a.td || '').localeCompare(b.td || ''));
-    const spentNames = new Set(spent.map(t => t.name));
     // Weekly buckets by day of month: 1–7, 8–14, 15–21, 22–end
     const labels = ['Days 1–7', 'Days 8–14', 'Days 15–21', 'Days 22–end'];
     const weekArr = [];
@@ -19,18 +19,7 @@ export default function PlannerGroupDetail({ transactions, month, avgMonths, gro
       weekArr[idx].total += t.amt;
       weekArr[idx].items.push(t);
     });
-    const set = new Set(avgMonths);
-    const agg = {};
-    transactions.forEach(t => {
-      if (!set.has(t.m) || t.group !== group || !t.fixed || !countable(t)) return;
-      if (!agg[t.name]) agg[t.name] = { total: 0, months: new Set() };
-      agg[t.name].total += t.amt;
-      agg[t.name].months.add(t.m);
-    });
-    const expected = Object.entries(agg)
-      .filter(([name, v]) => !spentNames.has(name) && v.months.size >= Math.max(2, Math.ceil(avgMonths.length / 2)))
-      .map(([name, v]) => ({ name, amt: Math.round(v.total / v.months.size) }))
-      .sort((a, b) => b.amt - a.amt);
+    const expected = expectedFixedByGroup(transactions, month, avgMonths)[group]?.items || [];
     return { weeks: weekArr.filter(Boolean), expected, spentTotal: spent.reduce((s, t) => s + t.amt, 0) };
   }, [transactions, month, avgMonths, group]);
 
