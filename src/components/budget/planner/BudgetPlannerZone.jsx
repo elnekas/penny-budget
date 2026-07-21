@@ -256,9 +256,9 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
             ))}
           </div>
           <div className={`mt-3 rounded-xl px-4 py-3 text-xs font-medium flex items-center justify-between ${
-            overGoal
+            savings < 0
               ? 'bg-rose-50 text-rose-600 border border-rose-100'
-              : goldAmt > 0
+              : savings > 0
                 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-100'
                 : 'bg-blue-50 text-blue-600 border border-blue-100'
           }`}>
@@ -267,13 +267,12 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
                 ? (savings > 0 ? '✨ You actually kept this much of your income' : savings < 0 ? 'You spent more than the income that arrived' : 'Income and spend exactly balanced')
                 : mode === 'past'
                   ? (savings > 0 ? '✨ This plan left this much for savings' : savings < 0 ? 'This plan exceeded the budget' : 'This plan was fully allocated')
-                  : (overGoal ? 'Your plan exceeds your budget goal — trim some slices'
-                    : goldAmt > 0 ? '✨ Saved vs your average month — the golden slice of your pie'
-                    : goldAmt < 0 ? 'This plan spends more than your average month'
-                    : 'Matching your average month — every shekel has a job')}
+                  : (savings < 0 ? 'Your plan exceeds your budget — trim some slices'
+                    : savings > 0 ? '✨ Still left to budget — unallocated money in your plan'
+                    : 'Fully allocated — every shekel has a job')}
             </span>
             <span className="text-sm font-bold">
-              {overGoal ? `${fmt(-savings)} over` : fmt(Math.abs(goldAmt))}
+              {savings < 0 ? `${fmt(-savings)} over` : fmt(savings)}
             </span>
           </div>
         </div>
