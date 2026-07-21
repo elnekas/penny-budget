@@ -7,6 +7,29 @@ const INTERNAL_STRINGS = [
 ];
 const FREQ_DIV = { monthly: 1, quarterly: 3, yearly: 12 };
 
+// Budget-planner groups — must match src/components/riseup/riseupGroups.js
+const GROUP_LABELS: Record<string, string> = {
+  income: 'Income', housing: 'Housing & Bills', food: 'Food & Groceries', dining: 'Dining Out',
+  transport: 'Transportation', health: 'Health & Pharmacy', kids: 'Kids & Education',
+  personal: 'Clothing & Personal', lifestyle: 'Lifestyle & Leisure', giving: 'Giving & Tzedaka',
+  financial: 'Fees & Financial', other: 'Other'
+};
+function groupForCategory(catName: string, isIncome: boolean) {
+  if (isIncome) return 'income';
+  const c = (catName || '').toLowerCase();
+  if (/(grocer|makolet|supermarket|butcher|bakery|fruit|veg)/.test(c)) return 'food';
+  if (/(restaurant|cafe|coffee|dining|eating|wolt|takeaway|fast food|pizza)/.test(c)) return 'dining';
+  if (/(car|fuel|parking|transport|bus|train|taxi|rav kav)/.test(c)) return 'transport';
+  if (/(pharma|health|medical|dental|doctor|kupat|optic)/.test(c)) return 'health';
+  if (/(educat|school|tuition|gan|kid|child|camp|chug|babysit|toy)/.test(c)) return 'kids';
+  if (/(cloth|footwear|shoe|beauty|cosmetic|barber|hair)/.test(c)) return 'personal';
+  if (/(charity|tzedaka|donation|maaser)/.test(c)) return 'giving';
+  if (/(wellness|gym|sport|fitness|spa|digital|subscription|stream|entertain|hobby|pet|vet|travel|vacation|hotel|flight)/.test(c)) return 'lifestyle';
+  if (/(arnona|electric|water|rent|mortgage|vaad|city tax|phone|cell|internet|communi|municipal|home)/.test(c)) return 'housing';
+  if (/(insurance|fee|atm|interest|loan|saving|invest|bank|payment)/.test(c)) return 'financial';
+  return 'other';
+}
+
 function runQuery(txs, q) {
   const from = q.from || '0000-00-00';
   const to = q.to || '9999-12-31';
@@ -45,13 +68,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'messages required' }, { status: 400 });
     }
 
-    const [snapRes, externals, goals, overrides, renames, transfers] = await Promise.all([
+    const [snapRes, externals, goals, overrides, renames, transfers, plans, groupOverrides] = await Promise.all([
       fetch(SNAPSHOT_URL),
       base44.entities.ExternalIncome.list('-created_date', 100),
       base44.entities.CategoryGoal.list('-created_date', 300),
       base44.entities.RiseUpOverride.list('-created_date', 2000),
       base44.entities.RiseUpCategoryRename.list('-created_date', 500),
-      base44.entities.DepositTransfer.list('-created_date', 500)
+      base44.entities.DepositTransfer.list('-created_date', 500),
+      base44.entities.BudgetPlan.list('-created_date', 200),
+      base44.entities.RiseUpCategoryGroup.list('-created_date', 500)
     ]);
     const snapshot = await snapRes.json();
 
@@ -60,6 +85,8 @@ Deno.serve(async (req) => {
     overrides.forEach((o) => { if (!ovMap.has(o.tx_id)) ovMap.set(o.tx_id, o); });
     const renameMap = new Map();
     renames.forEach((r) => { if (!renameMap.has(r.old_name)) renameMap.set(r.old_name, r.new_name); });
+    const groupMap = new Map();
+    groupOverrides.forEach((g) => { if (!groupMap.has(g.category_name)) groupMap.set(g.category_name, g.group); });
 
     const months = snapshot.months || [];
     const monthly: Record<string, { income: number; fixed: number; variable: number; categories: Record<string, number> }> = {};
@@ -72,7 +99,8 @@ Deno.serve(async (req) => {
       if (t.name && INTERNAL_STRINGS.some((s) => t.name.includes(s))) return;
       let cat = ov?.category || t.catName || 'General';
       cat = renameMap.get(cat) || cat;
-      allTxs.push({ name: t.name, amt: t.amt, td: t.td || '', m: t.m, inc: !!t.inc, fixed: !!t.fixed, cat });
+      const group = groupMap.get(cat) || groupForCategory(cat, !!t.inc);
+      allTxs.push({ name: t.name, amt: t.amt, td: t.td || '', m: t.m, inc: !!t.inc, fixed: !!t.fixed, cat, group, planned: !!ov?.planned });
       const s = monthly[t.m];
       if (!s) return;
       if (t.inc) s.income += t.amt;
@@ -140,6 +168,27 @@ Deno.serve(async (req) => {
 
     const goalLines = goals.map((g) => `- ${g.category}: ceiling ₪${g.monthly_target}/mo`).join('\n') || 'No category goals set yet.';
 
+    // Budget Planning Zone state — allocations live per GROUP (not per category)
+    const avgMonths = months.slice(0, -1).slice(-6);
+    const avgSet = new Set(avgMonths);
+    const groupAvg: Record<string, number> = {};
+    const groupSpent: Record<string, number> = {};
+    allTxs.forEach((t) => {
+      if (t.inc || t.planned) return;
+      if (avgSet.has(t.m)) groupAvg[t.group] = (groupAvg[t.group] || 0) + t.amt;
+      if (t.m === nowMonth) groupSpent[t.group] = (groupSpent[t.group] || 0) + t.amt;
+    });
+    Object.keys(groupAvg).forEach((g) => { groupAvg[g] = Math.round(groupAvg[g] / (avgMonths.length || 1)); });
+    const currentPlan = plans.find((p) => p.month === nowMonth);
+    const plannerLines = Object.keys(groupAvg).sort((a, b) => (groupAvg[b] || 0) - (groupAvg[a] || 0)).map((g) => {
+      const planned = currentPlan?.allocations?.[g] ?? groupAvg[g];
+      const spent = Math.round(groupSpent[g] || 0);
+      return `- ${g} (${GROUP_LABELS[g] || g}): budgeted ₪${Math.round(planned)}${currentPlan?.allocations?.[g] == null ? ' (default = avg, not explicitly set)' : ''}, spent so far ₪${spent}, remaining ₪${Math.round(planned - spent)}, 6-mo avg ₪${groupAvg[g]}`;
+    }).join('\n');
+    const otherPlans = plans.filter((p) => p.month !== nowMonth && p.month >= nowMonth).map((p) =>
+      `- ${p.month}: goal ₪${p.budget_goal ?? '—'}, allocations ${JSON.stringify(p.allocations || {})}`
+    ).join('\n');
+
     const systemPrompt = `You are Penny, a warm, sharp personal-finance coach. You blend Dave Ramsey's discipline (every shekel has a job, attack fixed costs) with Tony Robbins' growth mindset (focus on freedom, momentum, and goals). The user follows a Growth + Goal-Based methodology: proportional buckets plus per-category variable-spend ceilings.
 
 You are embedded in the user's live "Budget Cockpit" dashboard and can CONTROL the UI. Currency is ₪ (ILS). The last month in the data is the current, partial month.
@@ -159,6 +208,11 @@ ${bufferLines.join('\n') || 'None configured.'}
 
 Category goals:
 ${goalLines}
+
+BUDGET PLANNING ZONE (current month ${nowMonth}) — the user's live plan. Allocations are per GROUP (use the exact group ids below). Overall budget goal this month: ${currentPlan?.budget_goal ? `₪${currentPlan.budget_goal}` : 'not set'}.
+${plannerLines || 'No planner data yet.'}
+${otherPlans ? `Saved plans for other months:\n${otherPlans}` : ''}
+When the user asks "how much is left for X this month", map X to its group (e.g. clothing → personal, restaurants → dining, groceries → food) and answer with budgeted, spent, and remaining from the planner state above.
 
 DATA QUERY TOOL — you have access to EVERY individual transaction. Today is ${new Date().toISOString().slice(0, 10)}; the data spans ${months[0] || ''} to today. Whenever the user asks anything needing exact or granular numbers not in the summary above (this week's groceries, year-to-date totals, a specific merchant, a custom date range, weekly patterns, daily detail), respond with ONLY this JSON and nothing else:
 {"query": {"from":"YYYY-MM-DD","to":"YYYY-MM-DD","category":"<substring match on category, optional>","merchant":"<substring match on transaction name, optional>","type":"expense"|"income"|"all" (default expense),"group_by":"day"|"week"|"month"|"category"|"merchant" (optional)}}
@@ -182,6 +236,8 @@ Use null for general strategy talk with no specific visual. Month codes and cate
 - {"type":"set_goal","category":"<exact category name from the data>","monthly_target":<number, ILS>} — set or update a monthly spending ceiling (e.g. "Cap dining at 1500")
 - {"type":"add_external_income","source_name":"<name>","amount_usd":<number>,"frequency":"monthly"|"quarterly"|"yearly"|"one_time" (one_time = a single deposit; set start_date to the deposit date),"monthly_slice_usd":<number, optional — for one_time pots: how many USD/month to budget as spendable income until the pot runs out>,"exchange_rate":<number, optional>,"spend_pct":<0-100, optional, % spendable>,"start_date":"YYYY-MM-DD" (optional, when it begins),"end_date":"YYYY-MM-DD" (optional, when it ends),"deposit_day":<1-31, optional, day of month it lands>} — add an overseas income source
 - {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
+- {"type":"set_plan_allocation","group":"<exact group id from the planner state>","amount":<number, ILS>,"month":"YYYY-MM" (optional, default current month)} — set the budget for a group in the Budget Planning Zone (e.g. "Set my clothing budget to 4000 this month" → group "personal"). Note: for the live month the plan can't go below what's already spent.
+- {"type":"set_budget_goal","amount":<number, ILS>,"month":"YYYY-MM" (optional, default current month)} — set the overall monthly budget goal in the planner
 If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
     const callGemini = async (contents) => {
@@ -262,6 +318,21 @@ If the request is ambiguous (unknown category or merchant), ask for clarificatio
       if (updates.length) await base44.entities.RiseUpOverride.bulkUpdate(updates);
       if (creates.length) await base44.entities.RiseUpOverride.bulkCreate(creates);
       actionResult = `recategorize:${txIds.length}`;
+    } else if (act?.type === 'set_plan_allocation' && act.group && act.amount >= 0) {
+      const m = act.month || nowMonth;
+      const existing = plans.find((p) => p.month === m);
+      if (existing) {
+        await base44.entities.BudgetPlan.update(existing.id, { allocations: { ...(existing.allocations || {}), [act.group]: act.amount } });
+      } else {
+        await base44.entities.BudgetPlan.create({ month: m, allocations: { [act.group]: act.amount } });
+      }
+      actionResult = `set_plan_allocation:${act.group}=${act.amount}@${m}`;
+    } else if (act?.type === 'set_budget_goal' && act.amount > 0) {
+      const m = act.month || nowMonth;
+      const existing = plans.find((p) => p.month === m);
+      if (existing) await base44.entities.BudgetPlan.update(existing.id, { budget_goal: act.amount });
+      else await base44.entities.BudgetPlan.create({ month: m, budget_goal: act.amount });
+      actionResult = `set_budget_goal:${act.amount}@${m}`;
     }
 
     return Response.json({ reply: parsed.reply, ui_action: parsed.ui_action || null, chart: parsed.chart || null, action_result: actionResult });
