@@ -173,17 +173,43 @@ Deno.serve(async (req) => {
     const avgSet = new Set(avgMonths);
     const groupAvg: Record<string, number> = {};
     const groupSpent: Record<string, number> = {};
+    const spentNames: Record<string, Set<string>> = {};
+    const fixedAgg: Record<string, Record<string, { total: number; months: Set<string> }>> = {};
     allTxs.forEach((t) => {
       if (t.inc || t.planned) return;
       if (avgSet.has(t.m)) groupAvg[t.group] = (groupAvg[t.group] || 0) + t.amt;
-      if (t.m === nowMonth) groupSpent[t.group] = (groupSpent[t.group] || 0) + t.amt;
+      if (t.m === nowMonth) {
+        groupSpent[t.group] = (groupSpent[t.group] || 0) + t.amt;
+        (spentNames[t.group] = spentNames[t.group] || new Set()).add(t.name);
+      }
+      if (avgSet.has(t.m) && t.fixed) {
+        const g = fixedAgg[t.group] = fixedAgg[t.group] || {};
+        const e = g[t.name] = g[t.name] || { total: 0, months: new Set() };
+        e.total += t.amt;
+        e.months.add(t.m);
+      }
     });
     Object.keys(groupAvg).forEach((g) => { groupAvg[g] = Math.round(groupAvg[g] / (avgMonths.length || 1)); });
+    // Recurring fixed bills not yet charged this month (same logic as the planner UI)
+    const minMonths = Math.max(2, Math.ceil(avgMonths.length / 2));
+    const upcomingFixed: Record<string, { total: number; items: string[] }> = {};
+    Object.entries(fixedAgg).forEach(([g, names]) => {
+      let tot = 0; const items: string[] = [];
+      Object.entries(names).forEach(([name, v]) => {
+        if (spentNames[g]?.has(name) || v.months.size < minMonths) return;
+        const amt = Math.round(v.total / v.months.size);
+        tot += amt;
+        items.push(`${name} ₪${amt}`);
+      });
+      if (tot > 0) upcomingFixed[g] = { total: tot, items };
+    });
     const currentPlan = plans.find((p) => p.month === nowMonth);
     const plannerLines = Object.keys(groupAvg).sort((a, b) => (groupAvg[b] || 0) - (groupAvg[a] || 0)).map((g) => {
       const planned = currentPlan?.allocations?.[g] ?? groupAvg[g];
       const spent = Math.round(groupSpent[g] || 0);
-      return `- ${g} (${GROUP_LABELS[g] || g}): budgeted ₪${Math.round(planned)}${currentPlan?.allocations?.[g] == null ? ' (default = avg, not explicitly set)' : ''}, spent so far ₪${spent}, remaining ₪${Math.round(planned - spent)}, 6-mo avg ₪${groupAvg[g]}`;
+      const up = upcomingFixed[g];
+      const upTotal = up?.total || 0;
+      return `- ${g} (${GROUP_LABELS[g] || g}): budgeted ₪${Math.round(planned)}${currentPlan?.allocations?.[g] == null ? ' (default = avg, not explicitly set)' : ''}, spent so far ₪${spent}, expected fixed still to come ₪${upTotal}${up?.items.length ? ` (${up.items.join(', ')})` : ''}, remaining ₪${Math.round(planned - spent - upTotal)}, 6-mo avg ₪${groupAvg[g]}`;
     }).join('\n');
     const otherPlans = plans.filter((p) => p.month !== nowMonth && p.month >= nowMonth).map((p) =>
       `- ${p.month}: goal ₪${p.budget_goal ?? '—'}, allocations ${JSON.stringify(p.allocations || {})}`
@@ -212,7 +238,7 @@ ${goalLines}
 BUDGET PLANNING ZONE (current month ${nowMonth}) — the user's live plan. Allocations are per GROUP (use the exact group ids below). Overall budget goal this month: ${currentPlan?.budget_goal ? `₪${currentPlan.budget_goal}` : 'not set'}.
 ${plannerLines || 'No planner data yet.'}
 ${otherPlans ? `Saved plans for other months:\n${otherPlans}` : ''}
-When the user asks "how much is left for X this month", map X to its group (e.g. clothing → personal, restaurants → dining, groceries → food) and answer with budgeted, spent, and remaining from the planner state above.
+When the user asks "how much is left for X this month", map X to its group (e.g. clothing → personal, restaurants → dining, groceries → food) and answer with budgeted, spent, and remaining from the planner state above. "Remaining" already subtracts BOTH what was spent AND recurring fixed bills expected but not yet charged this month — mention the upcoming bills when relevant.
 
 DATA QUERY TOOL — you have access to EVERY individual transaction. Today is ${new Date().toISOString().slice(0, 10)}; the data spans ${months[0] || ''} to today. Whenever the user asks anything needing exact or granular numbers not in the summary above (this week's groceries, year-to-date totals, a specific merchant, a custom date range, weekly patterns, daily detail), respond with ONLY this JSON and nothing else:
 {"query": {"from":"YYYY-MM-DD","to":"YYYY-MM-DD","category":"<substring match on category, optional>","merchant":"<substring match on transaction name, optional>","type":"expense"|"income"|"all" (default expense),"group_by":"day"|"week"|"month"|"category"|"merchant" (optional)}}

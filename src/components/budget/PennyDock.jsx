@@ -18,6 +18,14 @@ export default function PennyDock({ onUiAction }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
 
+  // Restore the saved conversation once per session
+  useEffect(() => {
+    if (savedMessages) return;
+    base44.entities.PennyMessage.list('created_date', 300).then(rows => {
+      if (rows.length) setMessages([GREETING, ...rows.map(r => ({ role: r.role, content: r.content, chart: r.chart || null }))]);
+    });
+  }, []);
+
   useEffect(() => { savedMessages = messages; }, [messages]);
 
   const send = async () => {
@@ -27,9 +35,13 @@ export default function PennyDock({ onUiAction }) {
     const next = [...messages, { role: 'user', content: text }];
     setMessages(next);
     setSending(true);
+    base44.entities.PennyMessage.create({ role: 'user', content: text });
     try {
       const res = await base44.functions.invoke('budgetCoach', { messages: next.slice(-14) });
       setMessages([...next, { role: 'assistant', content: res.data.reply, chart: res.data.chart || null }]);
+      const rec = { role: 'assistant', content: res.data.reply };
+      if (res.data.chart) rec.chart = res.data.chart;
+      base44.entities.PennyMessage.create(rec);
       if (res.data.action_result) queryClient.invalidateQueries();
       if (res.data.ui_action) {
         if (mode === 'full') setMode('panel');

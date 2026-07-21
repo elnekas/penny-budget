@@ -1,0 +1,30 @@
+{
+  "name": "PennyMessage",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Who sent the message"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "chart": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Optional chart payload rendered inline with the message"
+    }
+  },
+  "required": [
+    "role",
+    "content"
+  ]
+}

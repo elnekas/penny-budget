@@ -108,6 +108,7 @@ export default function BudgetPlannerZone({ transactions, months, externals, tra
         const min = floorFor(g);
         const value = Math.max(alloc[g] ?? avg, min);
         return {
+          remaining: mode === 'current' ? Math.round(value - min) : null,
           group: g,
           emoji: GROUPS[g]?.emoji || '',
           label: `${GROUPS[g]?.emoji || ''} ${GROUPS[g]?.label || g}`,

@@ -5,7 +5,7 @@ import { SLICE_COLORS } from './plannerUtils';
 import PlannerGroupDetail from './PlannerGroupDetail';
 
 export default function PlannerSliceRow({ slice, onChange, readOnly, transactions, month, avgMonths }) {
-  const { label, value, avg, status, min = 0, group } = slice;
+  const { label, value, avg, status, min = 0, group, remaining } = slice;
   const [expanded, setExpanded] = useState(false);
   const color = SLICE_COLORS[status];
   const max = Math.max(Math.round(avg * 2), value, 500);
@@ -55,6 +55,11 @@ export default function PlannerSliceRow({ slice, onChange, readOnly, transaction
             style={{ accentColor: color }}
           />
         </div>
+      )}
+      {remaining != null && (
+        <p className={`text-[10px] mt-1 font-medium ${remaining > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+          {fmt(remaining)} left · after spent + fixed bills still to come
+        </p>
       )}
       {expanded && (
         <PlannerGroupDetail transactions={transactions} month={month} avgMonths={avgMonths} group={group} />
