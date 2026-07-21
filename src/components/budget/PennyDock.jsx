@@ -29,7 +29,7 @@ export default function PennyDock({ onUiAction }) {
     setSending(true);
     try {
       const res = await base44.functions.invoke('budgetCoach', { messages: next.slice(-14) });
-      setMessages([...next, { role: 'assistant', content: res.data.reply }]);
+      setMessages([...next, { role: 'assistant', content: res.data.reply, chart: res.data.chart || null }]);
       if (res.data.action_result) queryClient.invalidateQueries();
       if (res.data.ui_action) {
         if (mode === 'full') setMode('panel');

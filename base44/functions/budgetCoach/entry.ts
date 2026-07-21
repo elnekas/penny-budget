@@ -7,6 +7,33 @@ const INTERNAL_STRINGS = [
 ];
 const FREQ_DIV = { monthly: 1, quarterly: 3, yearly: 12 };
 
+function runQuery(txs, q) {
+  const from = q.from || '0000-00-00';
+  const to = q.to || '9999-12-31';
+  let rows = txs.filter((t) => t.td >= from && t.td <= to);
+  if (q.type === 'income') rows = rows.filter((t) => t.inc);
+  else if (q.type !== 'all') rows = rows.filter((t) => !t.inc);
+  if (q.category) { const c = q.category.toLowerCase(); rows = rows.filter((t) => t.cat.toLowerCase().includes(c)); }
+  if (q.merchant) { const s = q.merchant.toLowerCase(); rows = rows.filter((t) => (t.name || '').toLowerCase().includes(s)); }
+  const keyFor = (t) => {
+    if (q.group_by === 'day') return t.td;
+    if (q.group_by === 'week') { const d = new Date(t.td); d.setDate(d.getDate() - d.getDay()); return 'week of ' + d.toISOString().slice(0, 10); }
+    if (q.group_by === 'category') return t.cat;
+    if (q.group_by === 'merchant') return t.name || '?';
+    return t.m;
+  };
+  const groups = {};
+  rows.forEach((t) => { const k = keyFor(t); groups[k] = (groups[k] || 0) + t.amt; });
+  const byName = q.group_by === 'category' || q.group_by === 'merchant';
+  const breakdown = Object.entries(groups)
+    .map(([key, total]) => ({ key, total: Math.round(total) }))
+    .sort((a, b) => byName ? b.total - a.total : a.key.localeCompare(b.key))
+    .slice(0, 40);
+  const largest = [...rows].sort((a, b) => b.amt - a.amt).slice(0, 25)
+    .map((t) => ({ date: t.td, name: t.name, amount: Math.round(t.amt), category: t.cat }));
+  return { matched_transactions: rows.length, total: Math.round(rows.reduce((s, t) => s + t.amt, 0)), breakdown, largest };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -38,14 +65,16 @@ Deno.serve(async (req) => {
     const monthly: Record<string, { income: number; fixed: number; variable: number; categories: Record<string, number> }> = {};
     months.forEach((m) => { monthly[m] = { income: 0, fixed: 0, variable: 0, categories: {} }; });
 
+    const allTxs = [];
     (snapshot.transactions || []).forEach((t) => {
       const ov = ovMap.get(t.id);
       if (ov?.ignored) return;
       if (t.name && INTERNAL_STRINGS.some((s) => t.name.includes(s))) return;
-      const s = monthly[t.m];
-      if (!s) return;
       let cat = ov?.category || t.catName || 'General';
       cat = renameMap.get(cat) || cat;
+      allTxs.push({ name: t.name, amt: t.amt, td: t.td || '', m: t.m, inc: !!t.inc, fixed: !!t.fixed, cat });
+      const s = monthly[t.m];
+      if (!s) return;
       if (t.inc) s.income += t.amt;
       else if (t.fixed) s.fixed += t.amt;
       else { s.variable += t.amt; s.categories[cat] = (s.categories[cat] || 0) + t.amt; }
@@ -131,8 +160,16 @@ ${bufferLines.join('\n') || 'None configured.'}
 Category goals:
 ${goalLines}
 
-RESPONSE FORMAT — always return ONLY valid JSON:
-{"reply": "your coaching message in markdown (concise, specific numbers, encouraging, 1-2 emojis max)", "ui_action": <action or null>, "action": <action or null>}
+DATA QUERY TOOL — you have access to EVERY individual transaction. Today is ${new Date().toISOString().slice(0, 10)}; the data spans ${months[0] || ''} to today. Whenever the user asks anything needing exact or granular numbers not in the summary above (this week's groceries, year-to-date totals, a specific merchant, a custom date range, weekly patterns, daily detail), respond with ONLY this JSON and nothing else:
+{"query": {"from":"YYYY-MM-DD","to":"YYYY-MM-DD","category":"<substring match on category, optional>","merchant":"<substring match on transaction name, optional>","type":"expense"|"income"|"all" (default expense),"group_by":"day"|"week"|"month"|"category"|"merchant" (optional)}}
+You'll receive matched totals, a breakdown, and the largest transactions — then give your final answer. You may query up to 3 times (e.g. to compare two ranges). NEVER guess or estimate a number you can query — query it.
+
+RESPONSE FORMAT — final answers return ONLY valid JSON:
+{"reply": "your coaching message in markdown (concise, specific numbers, encouraging, 1-2 emojis max)", "ui_action": <action or null>, "action": <action or null>, "chart": <chart or null>}
+
+"chart" renders a graph right inside the chat — use it whenever a visual helps explain the numbers (trends, comparisons, composition):
+{"type":"bar"|"line"|"pie","title":"<short title>","data":[{"label":"<short label>","value":<number, ILS>}]}
+Use pie for composition, line for trends over time, bar for comparisons. Max ~12 data points, short labels. Use null when no visual is needed.
 
 ui_action lets you show things on the dashboard. Use it whenever you discuss specific categories or months:
 - {"type":"focus_category","category":"<exact category name>","months":["YYYY-MM"]} — spotlight one category for one month (or 2-4 months side by side for comparison)
@@ -147,29 +184,44 @@ Use null for general strategy talk with no specific visual. Month codes and cate
 - {"type":"recategorize_merchant","merchant":"<merchant name as it appears in transactions>","category":"<target category>"} — move ALL of that merchant's transactions to a category
 If the request is ambiguous (unknown category or merchant), ask for clarification in your reply instead of acting. Use null when no change is requested.`;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: messages.map((m) => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }]
-          })),
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.6 }
-        })
-      }
-    );
-    const gj = await geminiRes.json();
-    const text = gj.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const callGemini = async (contents) => {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.6 }
+          })
+        }
+      );
+      const gj = await geminiRes.json();
+      return gj.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    };
 
-    let parsed;
-    try {
-      parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-    } catch (_e) {
-      parsed = { reply: text || "I couldn't process that — try rephrasing?", ui_action: null };
+    const contents = messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+
+    let parsed = null;
+    for (let round = 0; round < 4; round++) {
+      const text = await callGemini(contents);
+      try {
+        parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      } catch (_e) {
+        parsed = { reply: text || "I couldn't process that — try rephrasing?", ui_action: null };
+        break;
+      }
+      if (parsed.query && round < 3) {
+        const result = runQuery(allTxs, parsed.query);
+        contents.push({ role: 'model', parts: [{ text }] });
+        contents.push({ role: 'user', parts: [{ text: 'QUERY RESULT: ' + JSON.stringify(result) }] });
+        continue;
+      }
+      break;
     }
 
     // Execute any data-changing action Penny decided on
@@ -212,7 +264,7 @@ If the request is ambiguous (unknown category or merchant), ask for clarificatio
       actionResult = `recategorize:${txIds.length}`;
     }
 
-    return Response.json({ reply: parsed.reply, ui_action: parsed.ui_action || null, action_result: actionResult });
+    return Response.json({ reply: parsed.reply, ui_action: parsed.ui_action || null, chart: parsed.chart || null, action_result: actionResult });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

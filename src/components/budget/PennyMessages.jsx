@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Loader2 } from 'lucide-react';
+import PennyChart from './PennyChart';
 
 export default function PennyMessages({ messages, sending }) {
   const endRef = useRef(null);
@@ -15,7 +16,10 @@ export default function PennyMessages({ messages, sending }) {
             : 'bg-slate-100 text-slate-700 rounded-2xl rounded-bl-md px-4 py-2 text-sm max-w-[85%]'}>
             {m.role === 'user'
               ? <p>{m.content}</p>
-              : <ReactMarkdown className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{m.content}</ReactMarkdown>}
+              : <>
+                  <ReactMarkdown className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{m.content}</ReactMarkdown>
+                  {m.chart && <PennyChart chart={m.chart} />}
+                </>}
           </div>
         </div>
       ))}
