@@ -27,6 +27,19 @@
     {
       "function_name": "pennyBudgetTools",
       "description": "Penny's budget toolbox: read the Budget Planning Zone state (budgeted/spent/upcoming fixed bills/remaining per group), run granular transaction queries, and make changes \u2014 set group budgets, monthly budget goals, category ceilings, add overseas income, and recategorize merchants."
+    },
+    {
+      "entity_name": "BankSyncRequest",
+      "allowed_operations": [
+        "create",
+        "read"
+      ]
+    },
+    {
+      "entity_name": "BankSyncStatus",
+      "allowed_operations": [
+        "read"
+      ]
     }
   ],
   "context_files": [],
